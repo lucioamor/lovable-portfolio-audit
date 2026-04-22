@@ -1,40 +1,137 @@
 // ============================================================
-// Scanner Engine — Orchestrator (Chrome Extension)
+// Scanner Engine — Orchestrator (Chrome Extension) v2
+// Integrates all 10 skills for production-grade security.
 // ============================================================
 
-import { getSessionToken, listProjects, testBOLA, getProjectFiles, getFileContent, getProjectMessages, setDelay } from './api-client.js';
-import { scanContent, isSensitiveFile, SENSITIVE_FILES } from './data-patterns.js';
-import { computeRiskScore, getSeverity } from './health-scorer.js';
+import { getSessionToken, listProjects, PROBE_ENDPOINTS, getProjectFiles, getFileContent, getProjectMessages } from './api-client.js';
+import { isSensitiveFile } from './data-patterns.js';
+import { createLogger } from './skills/structured-logger.js';
+import { hashSecret } from './skills/secret-hasher.js';
+import { requireConsent, hasConsent, grantConsent } from './skills/consent-gate.js';
+import { createRationaleBuilder, SIGNAL_WEIGHTS } from './skills/rationale-logger.js';
+import { probeDual, probeSingle } from './skills/dual-probe.js';
+import { saveRun, buildRunSummary, listRuns, computeDelta } from './skills/scan-history.js';
+import { buildActiveRegexSet } from './skills/pattern-catalog.js';
+import { isUnlocked, getToken } from './skills/token-vault.js';
+
+const logger = createLogger({ module: 'audit-engine' });
 
 let aborted = false;
-
 export function abortScan() { aborted = true; }
+
+const LOVABLE_API = 'https://api.lovable.dev';
+const NOV_2025 = new Date('2025-11-01');
+
+// ---- Secret scanning using pattern-catalog ----
+
+async function scanText(text, sourcePath) {
+  const { patterns } = await buildActiveRegexSet();
+  const findings = [];
+
+  for (const { pattern, regex } of patterns) {
+    if (pattern.kind !== 'secret' && pattern.kind !== 'pii') continue;
+    const freshRegex = new RegExp(regex.source, regex.flags);
+    let match;
+    while ((match = freshRegex.exec(text)) !== null) {
+      const raw = match[1] || match[0];
+      if (!raw || raw.length < 6) continue;
+
+      // Skip false positives
+      if (pattern.falsePositiveHints?.some(h => raw.toLowerCase().includes(h.toLowerCase()))) continue;
+      if (['your-api-key', 'placeholder', 'xxxx', 'example', 'dummy', 'fake', 'mock'].some(fp => raw.toLowerCase().includes(fp))) continue;
+
+      const hashed = await hashSecret(raw);
+      const lineNumber = text.slice(0, match.index).split('\n').length;
+
+      findings.push({
+        id: crypto.randomUUID(),
+        patternId: pattern.id,
+        kind: pattern.kind,
+        label: pattern.label,
+        severity: pattern.severity,
+        hash: hashed.hash,
+        masked: hashed.masked,
+        prefix: hashed.prefix,
+        source: sourcePath,
+        lineNumber,
+      });
+
+      freshRegex.lastIndex = match.index + 1;
+    }
+  }
+  return findings;
+}
+
+// ---- File path pattern check ----
+
+async function checkSensitivePaths(files) {
+  const { patterns } = await buildActiveRegexSet();
+  const pathPatterns = patterns.filter(p => p.pattern.kind === 'path');
+  const findings = [];
+
+  for (const file of files) {
+    const path = file.path || file.name || '';
+    for (const { pattern, regex } of pathPatterns) {
+      if (regex.test(path)) {
+        findings.push({
+          id: crypto.randomUUID(),
+          patternId: pattern.id,
+          kind: 'path',
+          label: pattern.label,
+          severity: pattern.severity,
+          path,
+          hash: null,
+          masked: path,
+        });
+      }
+    }
+  }
+  return findings;
+}
+
+// ---- Main scan ----
 
 export async function runScan(config, onProgress, onResult) {
   aborted = false;
-  setDelay(config.scanDelay || 500);
 
-  const token = await getSessionToken();
-  if (!token) throw new Error('No session token');
+  // Consent gates
+  await requireConsent('L0_legal');
+  await requireConsent('L1_safe_mode');
+
+  // Get owner token
+  let ownerToken;
+  if (await isUnlocked()) {
+    ownerToken = await getToken('lovable:owner');
+  }
+  if (!ownerToken) {
+    ownerToken = await getSessionToken();
+  }
+  if (!ownerToken) throw new Error('No session token. Please set up token vault or log in to Lovable.');
+
+  const auditToken = config.auditToken || (await isUnlocked() ? await getToken('lovable:audit') : null);
+  const scanDelay = config.scanDelay || 500;
 
   const projects = await listProjects();
   const filtered = config.projectFilter?.length
     ? projects.filter(p => config.projectFilter.includes(p.id))
     : projects;
 
+  const runId = crypto.randomUUID();
+  const startedAt = new Date().toISOString();
+
   const summary = {
     totalProjects: filtered.length, scannedProjects: 0,
-    criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, cleanCount: 0,
-    topFindings: [], scanStartTime: new Date().toISOString(), scanEndTime: '',
-    totalDurationMs: 0,
+    catastrophicCount: 0, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, cleanCount: 0,
+    runId, startedAt,
   };
 
-  const startTime = Date.now();
   const progress = {
     status: 'running', totalProjects: filtered.length,
     currentProjectIndex: 0, currentProject: '', findings: 0,
     percentage: 0, errors: [],
   };
+
+  const rationales = [];
 
   for (let i = 0; i < filtered.length; i++) {
     if (aborted) { progress.status = 'paused'; onProgress({ ...progress }); break; }
@@ -46,31 +143,47 @@ export async function runScan(config, onProgress, onResult) {
     onProgress({ ...progress });
 
     try {
-      const result = await scanProject(project, config);
+      const result = await scanProject(project, config, ownerToken, auditToken, scanDelay);
       progress.findings += result.findings.length;
       onResult(result);
+      rationales.push(result.rationale);
       summary.scannedProjects++;
-
-      if (result.severity === 'critical') summary.criticalCount++;
-      else if (result.severity === 'high') summary.highCount++;
-      else if (result.severity === 'medium') summary.mediumCount++;
-      else if (result.severity === 'low') summary.lowCount++;
-      else summary.cleanCount++;
+      summary[result.rationale.severity + 'Count'] = (summary[result.rationale.severity + 'Count'] || 0) + 1;
+      logger.info('project scanned', { projectId: project.id, severity: result.rationale.severity, score: result.rationale.scoreTotal });
     } catch (e) {
       progress.errors.push(`${project.name || project.id}: ${e.message}`);
+      logger.error('project scan failed', e, { projectId: project.id });
       onProgress({ ...progress });
     }
   }
 
   summary.scanEndTime = new Date().toISOString();
-  summary.totalDurationMs = Date.now() - startTime;
   progress.status = aborted ? 'paused' : 'completed';
   onProgress({ ...progress });
+
+  // Persist run history
+  if (!aborted && rationales.length > 0) {
+    try {
+      const runSummary = buildRunSummary(runId, startedAt, rationales);
+      await saveRun(runSummary);
+
+      const runs = await listRuns(2);
+      if (runs.length >= 2) {
+        summary.delta = await computeDelta(runs[1].id, runs[0].id);
+      }
+    } catch (e) {
+      logger.warn('could not save run history', undefined, { error: e.message });
+    }
+  }
+
   return summary;
 }
 
-async function scanProject(project, config) {
+async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
   const start = Date.now();
+  const builder = createRationaleBuilder(project.id);
+  const findings = [];
+
   const result = {
     projectId: project.id,
     projectName: project.name || project.id,
@@ -78,132 +191,182 @@ async function scanProject(project, config) {
     updatedAt: project.updated_at || project.updatedAt || new Date().toISOString(),
     scanTimestamp: new Date().toISOString(),
     scanDurationMs: 0,
-    bolaFileStatus: 'unknown',
-    bolaChatStatus: 'unknown',
+    bolaFilesSignature: 'unknown',
+    bolaChatSignature: 'unknown',
     supabaseDetected: false,
     supabaseUrl: null,
-    rlsStatus: 'not_tested',
-    findings: [],
+    findings,
     filesScanned: 0,
     chatMessagesScanned: 0,
-    riskScore: 0,
-    severity: 'clean',
   };
 
-  // BOLA test
-  const bola = await testBOLA(project.id);
-  result.bolaFileStatus = bola.fileStatus;
-  result.bolaChatStatus = bola.chatStatus;
+  const isPreNov2025 = new Date(result.createdAt) < NOV_2025;
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400 * 1000);
+  const isActive = new Date(result.updatedAt) > thirtyDaysAgo;
 
-  // Deep scan for secrets if files accessible
-  if (config.includeFiles && bola.fileStatus === 'vulnerable') {
-    try {
-      const files = await getProjectFiles(project.id);
-      if (files && Array.isArray(files)) {
-        const toScan = files.filter(f => isSensitiveFile(f.path || f.name || ''));
-        for (const file of toScan.slice(0, 20)) {
-          const content = await getFileContent(project.id, file.path || file.name);
-          if (content) {
-            const findings = scanContent(content, file.path || file.name);
-            result.findings.push(...findings);
-            // Detect Supabase
-            const sbMatch = content.match(/https:\/\/([a-z]{20})\.supabase\.co/);
-            if (sbMatch) {
-              result.supabaseDetected = true;
-              result.supabaseUrl = sbMatch[0];
-            }
-          }
-          result.filesScanned++;
-        }
+  // ---- BOLA Probes ----
+  const probeConfig = { ownerToken, auditToken: auditToken || ownerToken, throttleMs: scanDelay };
+
+  for (const ep of PROBE_ENDPOINTS) {
+    const endpoint = `${LOVABLE_API}${ep.path(project.id)}`;
+    let probeResult;
+
+    if (auditToken && auditToken !== ownerToken) {
+      probeResult = await probeDual(endpoint, project.id, probeConfig);
+    } else {
+      probeResult = await probeSingle(endpoint, project.id, ownerToken);
+    }
+
+    if (ep.label === 'GitFilesResponse') {
+      result.bolaFilesSignature = probeResult.signature;
+      if (['vulnerable', 'owner_only'].includes(probeResult.signature)) {
+        builder.add({ kind: 'bola_files', points: SIGNAL_WEIGHTS.bola_files, evidence: { endpoint } });
       }
-    } catch { /* continue */ }
+    } else if (ep.label === 'GetProjectMessagesOutputBody') {
+      result.bolaChatSignature = probeResult.signature;
+      if (['vulnerable', 'owner_only'].includes(probeResult.signature)) {
+        builder.add({ kind: 'bola_chat', points: SIGNAL_WEIGHTS.bola_chat, evidence: { endpoint } });
+      }
+    }
   }
 
-  // Chat scan
-  if (config.includeChat && bola.chatStatus === 'vulnerable') {
+  const ownerHasFiles = ['vulnerable', 'owner_only'].includes(result.bolaFilesSignature);
+  const ownerHasChat  = ['vulnerable', 'owner_only'].includes(result.bolaChatSignature);
+
+  // ---- File content scan ----
+  if (config.includeFiles && ownerHasFiles) {
+    const hasDeepConsent = await hasConsent('L2_deep_inspect', `scan_${result.projectId}`);
+    if (config.deepInspect && !hasDeepConsent) {
+      await grantConsent('L2_deep_inspect', `scan_${result.projectId}`);
+    }
+
+    if (config.deepInspect || hasDeepConsent) {
+      try {
+        const files = await getProjectFiles(project.id);
+        if (Array.isArray(files)) {
+          // Check sensitive paths
+          const pathFindings = await checkSensitivePaths(files);
+          for (const f of pathFindings) {
+            findings.push(f);
+            builder.add({ kind: 'sensitive_file', points: SIGNAL_WEIGHTS.sensitive_file, evidence: { path: f.path } });
+          }
+
+          // Scan content of sensitive files
+          const toScan = files.filter(f => isSensitiveFile(f.path || f.name || '')).slice(0, 15);
+          for (const file of toScan) {
+            try {
+              const content = await getFileContent(project.id, file.path || file.name);
+              if (content) {
+                const secretFindings = await scanText(content, file.path || file.name);
+                for (const sf of secretFindings) {
+                  findings.push(sf);
+                  const kind = ['catastrophic', 'critical'].includes(sf.severity) ? 'secret_critical' : 'secret_high';
+                  builder.add({ kind, points: SIGNAL_WEIGHTS[kind], evidence: { findingHash: sf.hash, path: sf.source } });
+
+                  // Detect Supabase URL in content
+                  const sbMatch = content.match(/https:\/\/([a-z0-9]{20})\.supabase\.co/);
+                  if (sbMatch && !result.supabaseDetected) {
+                    result.supabaseDetected = true;
+                    result.supabaseUrl = sbMatch[0];
+                  }
+                }
+              }
+              result.filesScanned++;
+            } catch { /* silent per-file failure */ }
+          }
+        }
+      } catch (e) {
+        logger.warn('file scan failed', undefined, { projectId: project.id, error: e.message });
+      }
+    }
+  }
+
+  // ---- Chat scan ----
+  if (config.includeChat && ownerHasChat) {
     try {
       const messages = await getProjectMessages(project.id);
-      if (messages && Array.isArray(messages)) {
-        for (const msg of messages.slice(0, 100)) {
+      if (Array.isArray(messages)) {
+        for (const msg of messages.slice(0, 200)) {
           const content = msg.content || msg.text || msg.body || '';
           if (content.length > 10) {
-            const findings = scanContent(content, `chat:${msg.id || 'message'}`);
-            result.findings.push(...findings);
+            const chatFindings = await scanText(content, `chat:${msg.id || 'msg'}`);
+            for (const cf of chatFindings) {
+              findings.push(cf);
+              builder.add({ kind: 'pii_in_chat', points: SIGNAL_WEIGHTS.pii_in_chat, evidence: { findingHash: cf.hash } });
+            }
           }
           result.chatMessagesScanned++;
         }
       }
-    } catch { /* continue */ }
+    } catch { /* silent */ }
   }
 
-  // Add BOLA findings
-  if (result.bolaFileStatus === 'vulnerable') {
-    result.findings.unshift({
-      id: crypto.randomUUID(), ruleId: 'bola_files', severity: 'critical',
-      title: 'Exposure: Source code accessible',
-      vector: 'bola_files', source: 'api.lovable.dev',
-      description: 'Endpoint returns 200 OK without ownership verification',
-      evidence: `HTTP 200 — ${result.filesScanned} files`,
-      recommendation: 'Contact Lovable support to apply retroactive ownership check on this project.',
-    });
+  // ---- Context modifiers ----
+  if (isActive) {
+    builder.add({ kind: 'active_project_bonus', points: SIGNAL_WEIGHTS.active_project_bonus, evidence: { lastEditedAt: result.updatedAt } });
   }
-  if (result.bolaChatStatus === 'vulnerable') {
-    result.findings.unshift({
-      id: crypto.randomUUID(), ruleId: 'bola_chat', severity: 'critical',
-      title: 'Exposure: Chat history accessible',
-      vector: 'bola_chat', source: 'api.lovable.dev',
-      description: 'Chat history exposed',
-      evidence: `HTTP 200 — ${result.chatMessagesScanned} messages`,
-      recommendation: 'Contact Lovable support. Consider deleting sensitive chat history.',
-    });
+  if (isPreNov2025) {
+    builder.add({ kind: 'pre_nov2025_penalty', points: SIGNAL_WEIGHTS.pre_nov2025_penalty, evidence: {} });
   }
 
+  const rationale = builder.build();
+  result.rationale = rationale;
+  result.riskScore = rationale.scoreTotal;
+  result.severity = rationale.severity;
   result.scanDurationMs = Date.now() - start;
-  result.riskScore = computeRiskScore(result);
-  result.severity = getSeverity(result.riskScore);
+
+  // Add top-level BOLA findings for UI display
+  if (['vulnerable', 'owner_only'].includes(result.bolaFilesSignature)) {
+    findings.unshift({
+      id: crypto.randomUUID(), ruleId: 'bola_files', severity: 'critical',
+      title: result.bolaFilesSignature === 'vulnerable' ? 'BOLA Confirmed: Source code accessible by any account' : 'Files accessible (owner access verified)',
+      vector: 'bola_files', source: 'api.lovable.dev',
+      description: 'Lovable API exposes project files without proper ownership enforcement.',
+      evidence: `Probe signature: ${result.bolaFilesSignature} | Files accessible: ${result.filesScanned}`,
+      recommendation: 'Contact Lovable support to apply retroactive ownership fix.',
+    });
+  }
+  if (['vulnerable', 'owner_only'].includes(result.bolaChatSignature)) {
+    findings.unshift({
+      id: crypto.randomUUID(), ruleId: 'bola_chat', severity: 'critical',
+      title: result.bolaChatSignature === 'vulnerable' ? 'BOLA Confirmed: Chat history accessible by any account' : 'Chat accessible (owner access verified)',
+      vector: 'bola_chat', source: 'api.lovable.dev',
+      description: 'AI conversation history exposed — may contain secrets, schemas, credentials.',
+      evidence: `Probe signature: ${result.bolaChatSignature} | Messages scanned: ${result.chatMessagesScanned}`,
+      recommendation: 'Delete sensitive messages. Contact Lovable support.',
+    });
+  }
+
   return result;
 }
 
-// Demo mode
+// ---- Demo mode ----
 export function generateDemoData() {
   return [
-    makeDemoProject('Admin Panel v2', '2025-06-15', '2026-04-10', 'vulnerable', 'vulnerable', true, 'missing', 23, 312, [
-      { id: '1', ruleId: 'bola_files', severity: 'critical', title: 'Exposure: Source code accessible', vector: 'bola_files', source: 'api', description: 'Endpoint returns 200 OK without ownership', evidence: 'HTTP 200 — 47 files', recommendation: 'Contact Lovable support.' },
-      { id: '2', ruleId: 'bola_chat', severity: 'critical', title: 'Exposure: Chat accessible', vector: 'bola_chat', source: 'api', description: 'Chat history exposed', evidence: 'HTTP 200 — 312 messages', recommendation: 'Delete sensitive chat history.' },
-      { id: '3', ruleId: 'supabase_service_role', severity: 'critical', title: 'Supabase Service Role Key in client.ts', vector: 'hardcoded_secret', source: 'client.ts', description: 'Database admin key exposed', evidence: 'eyJh•••••Lz1', recommendation: 'Rotate key immediately.' },
-      { id: '4', ruleId: 'rls_missing', severity: 'critical', title: 'RLS missing: users', vector: 'rls_missing', source: 'supabase', description: 'Table accessible without auth', evidence: 'users table returns data', recommendation: 'ALTER TABLE users ENABLE ROW LEVEL SECURITY;' },
-      { id: '5', ruleId: 'openai_key', severity: 'critical', title: 'OpenAI API Key in utils.ts', vector: 'hardcoded_secret', source: 'utils.ts', description: 'AI service key exposed', evidence: 'sk-A•••••x7Q', recommendation: 'Rotate key in OpenAI dashboard.' },
-    ]),
-    makeDemoProject('E-commerce MVP', '2025-09-01', '2026-04-10', 'vulnerable', 'vulnerable', true, 'missing', 42, 520, [
-      { id: '6', ruleId: 'bola_files', severity: 'critical', title: 'Exposure: Source code accessible', vector: 'bola_files', source: 'api', description: 'Endpoint returns 200', evidence: 'HTTP 200 — 89 files', recommendation: 'Contact Lovable support.' },
-      { id: '7', ruleId: 'bola_chat', severity: 'critical', title: 'Exposure: Chat accessible', vector: 'bola_chat', source: 'api', description: 'Chat exposed', evidence: 'HTTP 200 — 520 messages', recommendation: 'Delete chat.' },
-      { id: '8', ruleId: 'stripe_secret', severity: 'critical', title: 'Stripe Secret Key', vector: 'hardcoded_secret', source: 'checkout.ts', description: 'Payment key exposed', evidence: 'sk_live•••••', recommendation: 'Rotate in Stripe dashboard.' },
-      { id: '9', ruleId: 'cpf', severity: 'high', title: 'CPF in seed data', vector: 'pii_in_code', source: 'seed.sql', description: 'Brazilian PII in code', evidence: '123.•••', recommendation: 'Remove PII from source.' },
-      { id: '10', ruleId: 'rls_missing', severity: 'critical', title: 'RLS missing: orders', vector: 'rls_missing', source: 'supabase', description: 'Orders exposed', evidence: 'orders table open', recommendation: 'Enable RLS.' },
-    ]),
-    makeDemoProject('Landing Page Startup', '2025-06-15', '2025-12-20', 'vulnerable', 'protected', false, 'not_tested', 12, 0, [
-      { id: '11', ruleId: 'bola_files', severity: 'critical', title: 'Exposure: Files accessible', vector: 'bola_files', source: 'api', description: 'Source exposed', evidence: 'HTTP 200', recommendation: 'Contact Lovable.' },
-      { id: '12', ruleId: 'generic_api_key', severity: 'medium', title: 'API Key in config', vector: 'hardcoded_secret', source: 'config.ts', description: 'Generic key found', evidence: 'api_k•••', recommendation: 'Move to env vars.' },
-    ]),
-    makeDemoProject('CRM Dashboard', '2025-06-15', '2026-04-10', 'protected', 'protected', true, 'enabled', 30, 89, [
-      { id: '13', ruleId: 'email', severity: 'medium', title: 'Email in constants', vector: 'pii_in_code', source: 'constants.ts', description: 'Email found', evidence: 'admin•••', recommendation: 'Remove hardcoded email.' },
-      { id: '14', ruleId: 'firebase_key', severity: 'high', title: 'Firebase Key', vector: 'hardcoded_secret', source: 'firebase.ts', description: 'Firebase key exposed', evidence: 'AIza•••', recommendation: 'Restrict in Firebase console.' },
-    ]),
-    makeDemoProject('Blog Pessoal', '2026-03-01', '2026-04-10', 'protected', 'protected', false, 'not_tested', 15, 45, []),
+    makeDemo('Admin Panel v2',     '2025-06-15', '2026-04-10', 'vulnerable', 'vulnerable', true,  'missing',    23, 312, 190, 'catastrophic'),
+    makeDemo('E-commerce MVP',     '2025-09-01', '2026-04-10', 'vulnerable', 'vulnerable', true,  'missing',    42, 520, 160, 'catastrophic'),
+    makeDemo('Landing Page',       '2025-06-15', '2025-12-20', 'owner_only', 'patched',    false, 'not_tested', 12,   0,  80, 'critical'),
+    makeDemo('CRM Dashboard',      '2025-06-15', '2026-04-10', 'patched',    'patched',    true,  'enabled',    30,  89,  30, 'medium'),
+    makeDemo('Blog Pessoal',       '2026-03-01', '2026-04-10', 'patched',    'patched',    false, 'not_tested', 15,  45,   0, 'clean'),
   ];
 }
 
-function makeDemoProject(name, created, updated, bolaFile, bolaChat, supabase, rls, files, msgs, findings) {
-  const result = {
+function makeDemo(name, created, updated, bFiles, bChat, hasSupabase, _rls, files, msgs, score, severity) {
+  const now = new Date().toISOString();
+  return {
     projectId: crypto.randomUUID(), projectName: name,
     createdAt: created, updatedAt: updated,
-    scanTimestamp: new Date().toISOString(), scanDurationMs: Math.random() * 5000,
-    bolaFileStatus: bolaFile, bolaChatStatus: bolaChat,
-    supabaseDetected: supabase, supabaseUrl: supabase ? `https://${crypto.randomUUID().slice(0,20)}.supabase.co` : null,
-    rlsStatus: rls, findings, filesScanned: files, chatMessagesScanned: msgs,
-    riskScore: 0, severity: 'clean',
+    scanTimestamp: now, scanDurationMs: Math.random() * 3000 + 500,
+    bolaFilesSignature: bFiles, bolaChatSignature: bChat,
+    supabaseDetected: hasSupabase, supabaseUrl: hasSupabase ? 'https://abcdefghijklmnopqrst.supabase.co' : null,
+    filesScanned: files, chatMessagesScanned: msgs,
+    riskScore: score, severity,
+    rationale: { projectId: 'demo', scoreTotal: score, severity, contributions: [], schemaVersion: '1.0', computedAt: now },
+    findings: score > 0 ? [{
+      id: crypto.randomUUID(), ruleId: 'bola_files', severity: 'critical',
+      title: 'Demo: BOLA vulnerability detected', vector: 'bola_files',
+      source: 'api.lovable.dev', description: 'Demo finding — run a real scan to see actual results.',
+      evidence: `score=${score}`, recommendation: 'Run scan on real projects.',
+    }] : [],
   };
-  result.riskScore = computeRiskScore(result);
-  result.severity = getSeverity(result.riskScore);
-  return result;
 }

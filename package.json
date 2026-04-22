@@ -1,15 +1,15 @@
 {
   "name": "lovable-portfolio-audit",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "test": "vitest run",
+    "build:cli": "cd packages/cli && npm run build",
+    "build:ext": "echo 'Extension: load unpacked from ./extension in Chrome'"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
-    "vite": "^8.0.9"
+    "vitest": "^4.1.5"
   }
 }

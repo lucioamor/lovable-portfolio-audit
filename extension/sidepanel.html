@@ -3,68 +3,237 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lovable Portfolio Audit</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <title>NXLV Shield — Lovable Portfolio Audit</title>
   <link rel="stylesheet" href="sidepanel.css">
-  <style>
-    /* Side panel overrides — single column layout */
-    body { min-height: 100vh; }
-    .sidebar { display: none; }
-    .main-content { margin-left: 0; padding: 20px 16px; }
-    /* Top nav for side panel */
-    .sp-topnav {
-      display: flex; gap: 4px; margin-bottom: 20px; flex-wrap: wrap;
-      padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);
-    }
-    .sp-topnav .nav-tab {
-      padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;
-      font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);
-      background: transparent; border: 1px solid transparent;
-      transition: all var(--transition-fast);
-    }
-    .sp-topnav .nav-tab:hover { background: var(--bg-card); color: var(--text-primary); }
-    .sp-topnav .nav-tab.active {
-      background: rgba(108, 99, 255, 0.15); color: var(--accent-primary);
-      border-color: var(--accent-primary);
-    }
-    .sp-header {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-      padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);
-    }
-    .sp-header-logo { font-size: 1.3rem; }
-    .sp-header-title { font-size: 0.85rem; font-weight: 800; }
-    .sp-header-sub { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-    .sp-footer {
-      margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--border-subtle);
-      text-align: center;
-    }
-  </style>
 </head>
 <body>
-  <div id="app">
-    <main class="main-content">
-      <div class="sp-header">
-        <div class="sp-header-logo">📊</div>
-        <div>
-          <div class="sp-header-title">Lovable Portfolio Audit</div>
-          <div class="sp-header-sub">EXPOSURE &amp; POSTURE REVIEW</div>
-        </div>
-        <div style="margin-left:auto" id="lang-switcher"></div>
-      </div>
-      <div class="sp-topnav" id="topnav"></div>
-      <div id="page-content"></div>
-      <div class="sp-footer">
-        <div class="credits-card">
-          <a href="https://linkedin.com/in/lucioamorim" target="_blank">
-            <div class="credits-label" id="credits-label">Created by</div>
-            <div class="credits-name">Lucio Amorim</div>
-            <div class="credits-role">Lovable Ambassador</div>
-          </a>
-        </div>
-      </div>
-    </main>
+
+<!-- ===== LEGAL GATE MODAL (L0) ===== -->
+<div id="legal-gate" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="shield-icon">🛡️</span>
+      <h2>Before you begin</h2>
+      <p class="subtitle">NXLV Shield v2 — Lovable Portfolio Audit</p>
+    </div>
+    <div class="modal-body scrollable" id="legal-scroll-area">
+      <h3>What this scanner does:</h3>
+      <ul>
+        <li>Lists projects from <em>your authenticated</em> Lovable account</li>
+        <li>Probes 4 Lovable API endpoints to measure BOLA/IDOR exposure</li>
+        <li>Downloads files only if you grant explicit deep-inspect permission</li>
+        <li>Analyzes patterns locally — <strong>nothing leaves your browser</strong></li>
+        <li>Stores only hashes and masked values — never raw secrets</li>
+      </ul>
+      <h3>What this scanner does NOT do:</h3>
+      <ul>
+        <li>Does not access projects of other users</li>
+        <li>Does not send data to external servers</li>
+        <li>Does not persist file content — only SHA-256 hashes</li>
+        <li>Does not make write requests (POST/PUT/DELETE)</li>
+      </ul>
+      <h3>Your responsibility:</h3>
+      <p>This tool scans <em>only projects you own</em>. Using it to access third-party projects is illegal and violates Lovable's Terms of Service.</p>
+      <p class="legal-version">Terms version: 2026.04.21</p>
+    </div>
+    <div class="modal-footer">
+      <span id="legal-scroll-hint" class="hint">↓ Scroll to read all terms</span>
+      <button id="legal-reject-btn" class="btn btn-ghost">I do not accept</button>
+      <button id="legal-accept-btn" class="btn btn-primary" disabled>I have read and agree</button>
+    </div>
   </div>
-  <script type="module" src="sidepanel.js"></script>
+</div>
+
+<!-- ===== VAULT SETUP MODAL ===== -->
+<div id="vault-setup-modal" class="modal-overlay hidden">
+  <div class="modal-box modal-narrow">
+    <div class="modal-header">
+      <span class="shield-icon">🔐</span>
+      <h2>Set vault passphrase</h2>
+    </div>
+    <div class="modal-body">
+      <p class="hint">This passphrase encrypts your Lovable tokens. Minimum 12 characters. <strong>Cannot be recovered if forgotten.</strong></p>
+      <label>Passphrase<input type="password" id="vault-pass-input" placeholder="min. 12 characters" autocomplete="new-password"></label>
+      <label>Confirm<input type="password" id="vault-pass-confirm" placeholder="repeat passphrase" autocomplete="new-password"></label>
+      <p id="vault-setup-error" class="error-msg hidden"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="vault-setup-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="vault-setup-submit" class="btn btn-primary">Initialize vault</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VAULT UNLOCK MODAL ===== -->
+<div id="vault-unlock-modal" class="modal-overlay hidden">
+  <div class="modal-box modal-narrow">
+    <div class="modal-header">
+      <span class="shield-icon">🔓</span>
+      <h2>Unlock vault</h2>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Enter your vault passphrase to decrypt stored tokens.</p>
+      <label>Passphrase<input type="password" id="vault-unlock-input" placeholder="your passphrase" autocomplete="current-password"></label>
+      <p id="vault-unlock-error" class="error-msg hidden"></p>
+    </div>
+    <div class="modal-footer">
+      <button id="vault-unlock-submit" class="btn btn-primary">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="app">
+
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-icon">🛡️</span>
+      <div>
+        <span class="brand-name">NXLV Shield</span>
+        <span class="brand-sub">Lovable Portfolio Audit</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="vault-status-btn" class="icon-btn" title="Vault status">🔐</button>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="scan">Scan</button>
+    <button class="tab-btn" data-tab="results">Results</button>
+    <button class="tab-btn" data-tab="history">History</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </nav>
+
+  <!-- SCAN TAB -->
+  <div id="tab-scan" class="tab-content active">
+    <div class="status-bar">
+      <div id="session-badge" class="badge badge-neutral">Checking...</div>
+      <div id="vault-badge" class="badge badge-neutral">Vault —</div>
+    </div>
+
+    <div class="scan-card">
+      <div class="scan-options">
+        <label class="toggle-row"><input type="checkbox" id="opt-chat" checked><span>Scan AI chat history</span></label>
+        <label class="toggle-row"><input type="checkbox" id="opt-files"><span>Deep-inspect file content <span class="badge-warn">L2</span></span></label>
+        <label class="toggle-row"><input type="checkbox" id="opt-dual-probe"><span>Dual-probe BOLA <span class="badge-info">audit token</span></span></label>
+      </div>
+
+      <div id="audit-token-row" class="audit-token-row hidden">
+        <label>Audit token <span class="hint-inline">(secondary Lovable account)</span>
+          <input type="password" id="audit-token-input" placeholder="Bearer token — second account">
+        </label>
+        <p class="hint">Enables confirmed BOLA detection (200→200 cross-account vs 200→403 patched).</p>
+      </div>
+
+      <div class="scan-actions">
+        <button id="scan-btn" class="btn btn-primary btn-full">▶ Start Scan</button>
+        <button id="demo-btn" class="btn btn-ghost">Load Demo</button>
+      </div>
+    </div>
+
+    <div id="scan-progress" class="progress-section hidden">
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar"></div></div>
+      <div id="progress-label" class="progress-label">Initializing...</div>
+      <button id="stop-btn" class="btn btn-danger-ghost btn-sm">⏹ Stop</button>
+    </div>
+
+    <div id="summary-grid" class="summary-grid hidden">
+      <div class="summary-card sev-catastrophic"><span class="count" id="count-catastrophic">0</span><span class="label">💀</span></div>
+      <div class="summary-card sev-critical"><span class="count" id="count-critical">0</span><span class="label">🔴</span></div>
+      <div class="summary-card sev-high"><span class="count" id="count-high">0</span><span class="label">🟠</span></div>
+      <div class="summary-card sev-medium"><span class="count" id="count-medium">0</span><span class="label">🟡</span></div>
+      <div class="summary-card sev-clean"><span class="count" id="count-clean">0</span><span class="label">🟢</span></div>
+    </div>
+
+    <div id="delta-banner" class="delta-banner hidden"></div>
+  </div>
+
+  <!-- RESULTS TAB -->
+  <div id="tab-results" class="tab-content hidden">
+    <div class="results-toolbar">
+      <input type="text" id="results-filter" placeholder="Filter by project name...">
+      <select id="severity-filter">
+        <option value="">All</option>
+        <option value="catastrophic">💀 Catastrophic</option>
+        <option value="critical">🔴 Critical</option>
+        <option value="high">🟠 High</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="low">🔵 Low</option>
+        <option value="clean">🟢 Clean</option>
+      </select>
+      <button id="export-btn" class="btn btn-ghost btn-sm" title="Export evidence pack">📦</button>
+      <button id="clear-btn" class="btn btn-danger-ghost btn-sm" title="Clear results">🗑</button>
+    </div>
+    <div id="results-list" class="results-list"><div class="empty-state">Run a scan to see results</div></div>
+  </div>
+
+  <!-- HISTORY TAB -->
+  <div id="tab-history" class="tab-content hidden">
+    <div class="history-header">
+      <h3>Scan history</h3>
+      <button id="compare-runs-btn" class="btn btn-ghost btn-sm hidden">↔ Compare last 2</button>
+    </div>
+    <div id="history-list" class="history-list"><div class="empty-state">No scan history yet</div></div>
+    <div id="delta-view" class="delta-view hidden"></div>
+  </div>
+
+  <!-- SETTINGS TAB -->
+  <div id="tab-settings" class="tab-content hidden">
+    <section class="settings-section">
+      <h3>🔐 Token Vault</h3>
+      <p class="hint">AES-256-GCM + PBKDF2. Tokens never leave your browser.</p>
+      <div id="vault-not-init">
+        <p class="warning-text">Vault not initialized.</p>
+        <button id="vault-init-btn" class="btn btn-primary btn-sm">Initialize vault</button>
+      </div>
+      <div id="vault-locked" class="hidden">
+        <p>Vault is locked.</p>
+        <button id="vault-unlock-btn" class="btn btn-primary btn-sm">🔓 Unlock</button>
+      </div>
+      <div id="vault-unlocked" class="hidden">
+        <p class="success-text">✓ Vault unlocked</p>
+        <div class="vault-token-row">
+          <label>Owner token<input type="password" id="vault-owner-input" placeholder="Bearer eyJ..."></label>
+          <button id="vault-save-owner" class="btn btn-sm">Save</button>
+        </div>
+        <div class="vault-token-row">
+          <label>Audit token <span class="hint-inline">(optional)</span><input type="password" id="vault-audit-input" placeholder="Bearer eyJ..."></label>
+          <button id="vault-save-audit" class="btn btn-sm">Save</button>
+        </div>
+        <div class="vault-actions">
+          <button id="vault-lock-btn" class="btn btn-ghost btn-sm">🔒 Lock</button>
+          <button id="vault-reset-btn" class="btn btn-danger-ghost btn-sm">⚠ Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>⚙️ Scan defaults</h3>
+      <label class="toggle-row"><input type="checkbox" id="setting-chat" checked><span>Scan chat by default</span></label>
+      <div class="setting-row">
+        <label>Request delay (ms)<input type="number" id="setting-delay" min="200" max="5000" value="500" style="width:80px"></label>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>🔍 Detection patterns</h3>
+      <div class="patterns-toolbar">
+        <button id="refresh-patterns-btn" class="btn btn-ghost btn-sm">↻ Refresh catalog</button>
+        <button id="reset-toggles-btn" class="btn btn-ghost btn-sm">Reset</button>
+      </div>
+      <div id="pattern-list" class="pattern-list">Loading...</div>
+    </section>
+
+    <section class="settings-section">
+      <h3>ℹ️ About</h3>
+      <p class="hint">NXLV Shield v2.0.0 — local-first, read-only, privacy-preserving.</p>
+      <p class="hint"><a href="https://github.com/nxlv/lovable-portfolio-audit" target="_blank">github.com/nxlv/lovable-portfolio-audit</a></p>
+    </section>
+  </div>
+
+</div>
+
+<script type="module" src="sidepanel.js"></script>
 </body>
 </html>

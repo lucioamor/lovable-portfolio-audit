@@ -331,22 +331,17 @@ export class ScannerEngine {
         if (creds.anonKey) {
           try {
             const rlsResult = await testRLS(creds.url, creds.anonKey);
-            if (rlsResult.tablesWithoutRLS.length > 0) {
-              rlsStatus = 'missing';
-              for (const table of rlsResult.tablesWithoutRLS) {
-                findings.push({
-                  id: this.findingId(),
-                  vector: 'rls_missing' as ScanVector,
-                  severity: 'critical',
-                  title: `RLS ausente na tabela: ${table}`,
-                  description: `A tabela "${table}" retorna dados sem autenticação. Qualquer pessoa com a anon key pode ler todos os registros.`,
-                  evidence: `Tabela ${table} acessível via anon key`,
-                  recommendation: `Habilite RLS na tabela ${table} no Supabase Dashboard e adicione políticas restritivas com auth.uid().`,
-                });
-              }
-            } else if (rlsResult.tablesFound.length > 0) {
-              rlsStatus = 'enabled';
-            }
+            rlsStatus = 'unknown'; // Manual audit required
+            
+            findings.push({
+              id: this.findingId(),
+              vector: 'rls_missing' as ScanVector,
+              severity: 'high',
+              title: `Auditoria RLS Manual Necessária`,
+              description: `Copie o SQL e rode no seu banco de dados para verificar as políticas RLS.`,
+              evidence: `SQL gerado para auditoria manual`,
+              recommendation: `Rode no Supabase SQL Editor: \n\n${rlsResult.sqlToRun}`,
+            });
           } catch {
             rlsStatus = 'unknown';
           }

@@ -115,15 +115,6 @@ export function getVectorLabel(vector: Finding['vector']): string {
 }
 
 /**
- * Check if a project was created before the safety cutoff
- */
-export function isPreCutoff(createdAt: string): boolean {
-  const cutoff = new Date('2025-11-01T00:00:00Z');
-  const created = new Date(createdAt);
-  return created < cutoff;
-}
-
-/**
  * Check if project was edited within last 30 days
  */
 export function isActiveProject(updatedAt: string): boolean {

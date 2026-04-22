@@ -1,18 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Lovable Portfolio Audit",
-  "version": "1.0.0",
-  "description": "Audit your Lovable.dev projects for exposed configurations, missing Supabase RLS, and data exposure. A setup hygiene tool. 100% local.",
+  "name": "NXLV Shield — Lovable Portfolio Audit",
+  "version": "2.0.0",
+  "description": "Scan your Lovable.dev projects for BOLA/IDOR exposure, exposed secrets, and Supabase RLS gaps. Local-first, read-only, privacy-preserving.",
   "permissions": [
     "cookies",
     "activeTab",
     "storage",
-    "sidePanel"
+    "sidePanel",
+    "alarms"
   ],
   "host_permissions": [
     "https://lovable.dev/*",
     "https://api.lovable.dev/*",
-    "https://*.supabase.co/*"
+    "https://*.supabase.co/*",
+    "https://audit.nxlv.ai/*"
   ],
   "background": {
     "service_worker": "background.js",

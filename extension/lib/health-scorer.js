@@ -2,41 +2,45 @@
 // Risk Scorer
 // ============================================================
 
-const CUTOFF_EARLY = new Date('2025-05-25T00:00:00Z');
-const CUTOFF_LATE = new Date('2025-11-01T00:00:00Z');
-
-export function isPreCutoff(dateStr) {
-  try { return new Date(dateStr) < CUTOFF_LATE; } catch { return false; }
-}
-
 export function computeRiskScore(result) {
   let score = 0;
-  const created = new Date(result.createdAt);
 
-  // Temporal risk
-  if (created < CUTOFF_EARLY) score += 80;
-  else if (created < CUTOFF_LATE) score += 60;
+  // --- Endpoint exposure ---
+  if (result.probeResults && result.probeResults.length) {
+    // Signature-aware scoring (from skill-dual-probe)
+    for (const r of result.probeResults) {
+      if (r.signature !== 'vulnerable') continue;
+      if (r.label === 'GitFilesResponse' || r.label === 'GetProjectFile') score += 60;
+      else if (r.label === 'GetProjectMessagesOutputBody') score += 60;
+      else if (r.label === 'GetProject') score += 30;
+    }
+  } else {
+    // Legacy fallback (demo data / pre-dual-probe scans)
+    if (result.bolaFileStatus === 'vulnerable') score += 60;
+    if (result.bolaChatStatus === 'vulnerable') score += 60;
+  }
 
-  // BOLA exposure
-  if (result.bolaFileStatus === 'vulnerable') score += 60;
-  if (result.bolaChatStatus === 'vulnerable') score += 60;
-
-  // Content findings
+  // --- Content findings ---
   for (const f of result.findings) {
     if (f.severity === 'critical') score += 30;
     else if (f.severity === 'high') score += 20;
     else if (f.severity === 'medium') score += 10;
   }
 
-  // RLS
+  // --- RLS (extension-specific; roadmap keeps RLS as checklist only) ---
   if (result.rlsStatus === 'missing') score += 40;
 
-  // Activity recency bonus
+  // --- Temporal signal: recently edited and not all-patched → +10 ---
+  // Uses updatedAt (last edit), NOT createdAt (creation date).
+  // Bonus is zeroed when every probe is patched (project is clean).
+  const allPatched = result.probeResults?.length > 0
+    && result.probeResults.every(r => r.signature === 'patched');
   const daysSinceEdit = (Date.now() - new Date(result.updatedAt).getTime()) / 86400000;
-  if (daysSinceEdit < 30) score += 10;
+  if (daysSinceEdit < 30 && !allPatched) score += 10;
 
   return Math.min(100, score);
 }
+
 
 export function getSeverity(score) {
   if (score >= 80) return 'critical';
