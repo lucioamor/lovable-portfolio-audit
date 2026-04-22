@@ -3,7 +3,7 @@
 // ============================================================
 
 import { runScan, abortScan, generateDemoData } from './lib/audit-engine.js';
-import { hasSession } from './lib/api-client.js';
+import { getSessionToken } from './lib/api-client.js';
 import { createLogger } from './lib/skills/structured-logger.js';
 import { isInitialized, isUnlocked, unlock, migrateLegacyToken } from './lib/skills/token-vault.js';
 import { hasConsent, grantConsent, LEGAL_VERSION } from './lib/skills/consent-gate.js';
@@ -48,7 +48,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
 
     case 'CHECK_SESSION': {
-      hasSession().then(has => sendResponse({ hasSession: has }));
+      getSessionToken().then(token => sendResponse({ hasSession: !!token }));
       return true;
     }
 
