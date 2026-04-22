@@ -23,3 +23,8 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Audit/Analysis Files
+GAP_ANALYSIS.md
+ULTIMATE_IMPLEMENTATION_PLAN.md
+ANTIGRAVITY-AUDIT_REPORT.md
