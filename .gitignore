@@ -23,3 +23,12 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# Internal docs — never publish (roadmap, plans, reviewer strategy, audits)
+ROADMAP.md
+ADDITIONAL_IMPLEMENTATION_PLAN.md
+IMPLEMENTATION_PLAN_2026-06.md
+REVIEWER_QA.md
+GAP_ANALYSIS.md
+ULTIMATE_IMPLEMENTATION_PLAN.md
+ANTIGRAVITY-AUDIT_REPORT.md

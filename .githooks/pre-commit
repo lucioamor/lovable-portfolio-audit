@@ -1,0 +1,4 @@
+#!/bin/sh
+# Installed by scripts/install-hooks.mjs — do not edit by hand.
+# Blocks commits that add token-shaped secrets or token-logging.
+exec node scripts/pre-commit-token-scan.mjs

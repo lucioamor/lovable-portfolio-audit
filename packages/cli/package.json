@@ -1,0 +1,46 @@
+{
+  "name": "@nxlv/shield",
+  "version": "0.1.0",
+  "description": "The Lovable Production-Readiness Standard — independent security audit for Lovable apps",
+  "type": "module",
+  "bin": {
+    "nxlv-shield": "./dist/index.js",
+    "lovable-audit": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "lovable",
+    "supabase",
+    "security",
+    "scanner",
+    "rls",
+    "bola",
+    "audit",
+    "vibe-coding"
+  ],
+  "author": "NXLV <security@nxlv.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nxlv/lovable-portfolio-audit"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.1.1",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

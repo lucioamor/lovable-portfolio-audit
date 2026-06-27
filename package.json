@@ -1,15 +1,20 @@
 {
-  "name": "lovable-security-scanner",
+  "name": "lovable-portfolio-audit",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "test": "vitest run --pool=threads",
+    "build:cli": "cd packages/cli && npm run build",
+    "build:ext": "echo 'Extension: load unpacked from ./extension in Chrome'",
+    "check:drift": "npm run build:cli && node scripts/check-pattern-drift.mjs",
+    "hooks:install": "node scripts/install-hooks.mjs",
+    "precommit:scan": "node scripts/pre-commit-token-scan.mjs",
+    "package:ext": "node scripts/package-extension.mjs",
+    "prepare": "node scripts/install-hooks.mjs"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
-    "vite": "^8.0.9"
+    "vitest": "^4.1.5"
   }
 }

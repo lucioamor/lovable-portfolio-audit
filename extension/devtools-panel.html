@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NXLV Shield — Live Sensor</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; background: #0d1117; color: #e6edf3; }
+    header { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #21262d; position: sticky; top: 0; background: #0d1117; }
+    header h1 { font-size: 13px; margin: 0; font-weight: 600; }
+    .spacer { flex: 1; }
+    .toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9da7b3; }
+    button { background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; }
+    button:hover { background: #30363d; }
+    .notice { margin: 10px 12px; padding: 8px 10px; border-radius: 6px; background: #2d2410; color: #e3b341; font-size: 12px; }
+    .notice.hidden { display: none; }
+    section { padding: 6px 12px 12px; }
+    section h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #7d8590; margin: 12px 0 6px; }
+    .row { display: flex; gap: 8px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid #161b22; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; margin-top: 4px; }
+    .sev-catastrophic { background: #ff0033; } .sev-critical { background: #ff2e4c; }
+    .sev-high { background: #ff8c00; } .sev-medium { background: #ffc107; } .sev-low { background: #6ec6ff; }
+    code { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #9fb3c8; }
+    .muted { color: #7d8590; }
+    .tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; background: #1f2937; color: #93c5fd; }
+    .tag.new { background: #3b1d1d; color: #ff8c8c; }
+    .empty { color: #7d8590; padding: 8px 0; }
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛡️ NXLV Shield — Live Sensor</h1>
+    <div class="spacer"></div>
+    <label class="toggle"><input type="checkbox" id="enable"> Passive sensor</label>
+    <button id="refresh">Refresh</button>
+    <button id="clear">Clear</button>
+  </header>
+
+  <div id="consent-notice" class="notice hidden">
+    ⚠️ Legal terms not accepted — passive findings won't be stored until you accept them in the side panel.
+  </div>
+  <div id="off-notice" class="notice hidden">
+    Passive sensor is OFF (safe mode). Toggle it on to collect findings while you browse Lovable.
+  </div>
+
+  <section>
+    <h2>Findings (<span id="findings-count">0</span>)</h2>
+    <div id="findings"><div class="empty">No passive findings yet.</div></div>
+  </section>
+
+  <div class="cols">
+    <section>
+      <h2>Observed endpoints</h2>
+      <div id="endpoints"><div class="empty">None observed.</div></div>
+    </section>
+    <section>
+      <h2>5th-endpoint candidates (P7)</h2>
+      <div id="candidates"><div class="empty">None.</div></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Routes & DOM sinks</h2>
+    <div id="routes"><div class="empty">None discovered.</div></div>
+  </section>
+
+  <script src="devtools-panel.js"></script>
+</body>
+</html>

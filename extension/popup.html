@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 320px; min-height: 200px; padding: 16px;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #0a0a1a; color: #e8e8f0;
+    }
+    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .logo { font-size: 1.5rem; }
+    .title { font-size: 0.9rem; font-weight: 700; }
+    .subtitle { font-size: 0.65rem; color: #888; text-transform: uppercase; letter-spacing: 0.1em; }
+    .status {
+      padding: 10px 12px; border-radius: 8px; margin-bottom: 12px;
+      font-size: 0.78rem; font-weight: 500;
+    }
+    .status.ok { background: rgba(46, 213, 115, 0.1); border: 1px solid rgba(46, 213, 115, 0.3); color: #2ed573; }
+    .status.warn { background: rgba(255, 211, 42, 0.1); border: 1px solid rgba(255, 211, 42, 0.3); color: #ffd32a; }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;
+    }
+    .stat {
+      text-align: center; padding: 8px 4px; border-radius: 6px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    }
+    .stat-val { font-size: 1.1rem; font-weight: 800; }
+    .stat-label { font-size: 0.55rem; color: #888; text-transform: uppercase; }
+    .stat.crit .stat-val { color: #ff4757; }
+    .stat.high .stat-val { color: #ff8c42; }
+    .stat.med .stat-val { color: #ffd32a; }
+    .stat.clean .stat-val { color: #2ed573; }
+    .btn {
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; margin-bottom: 6px;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6c63ff, #8b5cf6); color: white;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-ghost {
+      background: rgba(255,255,255,0.05); color: #aaa; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .credits {
+      margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);
+      text-align: center; font-size: 0.6rem; color: #666;
+    }
+    .credits a { color: #6c63ff; text-decoration: none; }
+    .credits a:hover { text-decoration: underline; }
+    .credits-name { font-weight: 700; color: #aaa; font-size: 0.7rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">📊</div>
+    <div>
+      <div class="title">Lovable Portfolio Audit</div>
+      <div class="subtitle">EXPOSURE &amp; POSTURE REVIEW</div>
+    </div>
+  </div>
+
+  <div id="status" class="status warn">Checking session...</div>
+
+  <div id="stats" style="display:none">
+    <div class="stats">
+      <div class="stat crit"><div class="stat-val" id="s-crit">0</div><div class="stat-label">Critical</div></div>
+      <div class="stat high"><div class="stat-val" id="s-high">0</div><div class="stat-label">High</div></div>
+      <div class="stat med"><div class="stat-val" id="s-med">0</div><div class="stat-label">Medium</div></div>
+      <div class="stat clean"><div class="stat-val" id="s-clean">0</div><div class="stat-label">Clean</div></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="btn-scan" disabled>🔍 Inspect Projects</button>
+  <button class="btn btn-ghost" id="btn-panel">📊 Open Dashboard</button>
+  <button class="btn btn-ghost" id="btn-demo">📦 Load Demo</button>
+
+  <div class="credits">
+    <div class="credits-name"><a href="https://linkedin.com/in/lucioamorim" target="_blank">Lucio Amorim</a></div>
+    Lovable Ambassador
+  </div>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const statsEl = document.getElementById('stats');
+    const scanBtn = document.getElementById('btn-scan');
+    const panelBtn = document.getElementById('btn-panel');
+    const demoBtn = document.getElementById('btn-demo');
+
+    // Check session
+    chrome.runtime.sendMessage({ type: 'CHECK_SESSION' }, (res) => {
+      if (res?.hasSession) {
+        statusEl.className = 'status ok';
+        statusEl.textContent = '✅ Session detected — ready to inspect';
+        scanBtn.disabled = false;
+      } else {
+        statusEl.className = 'status warn';
+        statusEl.textContent = '⚠️ No Lovable session. Log in to lovable.dev first.';
+      }
+    });
+
+    // Load existing results
+    chrome.runtime.sendMessage({ type: 'GET_RESULTS' }, (res) => {
+      if (res?.results?.length > 0) {
+        statsEl.style.display = 'block';
+        const s = res.summary;
+        if (s) {
+          document.getElementById('s-crit').textContent = s.criticalCount || 0;
+          document.getElementById('s-high').textContent = s.highCount || 0;
+          document.getElementById('s-med').textContent = s.mediumCount || 0;
+          document.getElementById('s-clean').textContent = s.cleanCount || 0;
+        }
+      }
+    });
+
+    // Scan button
+    scanBtn.addEventListener('click', () => {
+      scanBtn.disabled = true;
+      scanBtn.textContent = '⏳ Inspecting...';
+      chrome.runtime.sendMessage({ type: 'START_SCAN', config: { includeFiles: true, includeChat: true, testRLS: true, scanDelay: 500 } });
+    });
+
+    // Listen for scan completion
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg.type === 'SCAN_COMPLETE') {
+        scanBtn.disabled = false;
+        scanBtn.textContent = '🔍 Inspect Projects';
+        statsEl.style.display = 'block';
+        const s = msg.summary;
+        document.getElementById('s-crit').textContent = s.criticalCount;
+        document.getElementById('s-high').textContent = s.highCount;
+        document.getElementById('s-med').textContent = s.mediumCount;
+        document.getElementById('s-clean').textContent = s.cleanCount;
+      }
+    });
+
+    // Open side panel
+    panelBtn.addEventListener('click', () => {
+      chrome.sidePanel?.open?.({ windowId: undefined });
+      window.close();
+    });
+
+    // Demo
+    demoBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ type: 'LOAD_DEMO' }, (res) => {
+        if (res?.summary) {
+          statsEl.style.display = 'block';
+          document.getElementById('s-crit').textContent = res.summary.criticalCount;
+          document.getElementById('s-high').textContent = res.summary.highCount;
+          document.getElementById('s-med').textContent = res.summary.mediumCount;
+          document.getElementById('s-clean').textContent = res.summary.cleanCount;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
