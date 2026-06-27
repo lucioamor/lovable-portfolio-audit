@@ -1,0 +1,85 @@
+# ============================================================
+# NXLV Shield — Lovable security audit (SARIF → GitHub Security tab)
+# ============================================================
+# This workflow builds the CLI from packages/cli, runs the `ci` subcommand
+# (SARIF output + exit code 1 on critical/catastrophic findings), and uploads
+# the SARIF to the repository's Security tab.
+#
+# Required setup:
+#   1. Add a repository secret named LOVABLE_TOKEN containing your Lovable
+#      Bearer token (Settings → Secrets and variables → Actions → New secret).
+#      To obtain it: log in at lovable.dev, open DevTools → Network, filter for
+#      api.lovable.dev, and copy the `Authorization: Bearer <token>` value.
+#   2. Code scanning must be enabled for the repository so the SARIF upload is
+#      accepted (Settings → Code security and analysis).
+#
+# The scan runs on a schedule and on manual dispatch only — never on pull
+# requests — so forks without the secret cannot fail the workflow. The job is
+# additionally guarded on the secret being present.
+# ============================================================
+
+name: NXLV Shield
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:00 UTC every Monday
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    # Skip cleanly when the token secret is not configured (e.g. on forks).
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Guard on LOVABLE_TOKEN secret
+        id: guard
+        env:
+          LOVABLE_TOKEN: ${{ secrets.LOVABLE_TOKEN }}
+        run: |
+          if [ -z "$LOVABLE_TOKEN" ]; then
+            echo "LOVABLE_TOKEN secret is not set — skipping the scan."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.guard.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install CLI dependencies
+        if: steps.guard.outputs.run == 'true'
+        run: npm install --no-audit --no-fund
+        working-directory: packages/cli
+
+      - name: Build CLI
+        if: steps.guard.outputs.run == 'true'
+        run: npm run build
+        working-directory: packages/cli
+
+      - name: Run NXLV Shield (CI scan → SARIF)
+        if: steps.guard.outputs.run == 'true'
+        # `ci` writes SARIF and exits 1 on critical/catastrophic findings. We
+        # keep going so the SARIF still uploads; the recorded exit code is
+        # surfaced by code scanning on the Security tab.
+        continue-on-error: true
+        env:
+          LOVABLE_TOKEN: ${{ secrets.LOVABLE_TOKEN }}
+        run: node packages/cli/dist/index.js ci --output nxlv-shield.sarif
+
+      - name: Upload SARIF to GitHub Security tab
+        if: steps.guard.outputs.run == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: nxlv-shield.sarif
+          category: nxlv-shield

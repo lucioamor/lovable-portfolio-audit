@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Root dev deps (vitest, typescript)
+      - run: npm install --no-audit --no-fund
+
+      # CLI build + typecheck
+      - name: Install CLI deps
+        run: cd packages/cli && npm install --no-audit --no-fund
+      - name: Build CLI
+        run: npm run build:cli
+
+      # Determinism + redaction + drift tests
+      - name: Test
+        run: npm test
+
+      # H3 — pattern drift gate (extension ↔ CLI must not diverge silently)
+      - name: Pattern drift check
+        run: node scripts/check-pattern-drift.mjs
