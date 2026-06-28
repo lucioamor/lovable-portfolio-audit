@@ -49,7 +49,7 @@ const TOUR_STEPS = [
   {
     emoji: '🛡️', tab: 'scan', target: null, author: true,
     title: 'Welcome to NXLV Lovable Portfolio Audit',
-    text: 'A read-only, local-first security audit for the Lovable projects you own — BOLA/IDOR exposure, leaked secrets, and Supabase RLS gaps. Nothing ever leaves your browser. Here\'s the 30-second tour.',
+    text: 'A read-only, local-first security audit for the Lovable projects you own — access-control exposure, leaked secrets, and Supabase RLS gaps. Nothing ever leaves your browser. Here\'s the 30-second tour.',
   },
   {
     emoji: '🔑', tab: 'scan', target: '#session-badge',

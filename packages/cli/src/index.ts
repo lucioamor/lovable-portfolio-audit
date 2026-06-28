@@ -32,7 +32,9 @@ import { createLogger, setGlobalLevel } from './util/logger.js';
 import type { ScannerConfig, Finding } from './types.js';
 import type { RLSPolicyCheck } from './engines/supabase-engine.js';
 
-const VERSION = '0.1.0';
+const VERSION: string = JSON.parse(
+  readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+).version;
 const log = createLogger({ tool: 'nxlv-audit' });
 
 function resolveBaselinePath(opt: unknown): string | undefined {
@@ -112,8 +114,8 @@ async function main() {
   const program = new Command();
 
   program
-    .name('nxlv-shield')
-    .description('Security audit for Lovable apps — BOLA, RLS, secrets, and more')
+    .name('nxlv-audit')
+    .description('Security audit for Lovable apps — access control, RLS, secrets, and more')
     .version(VERSION);
 
   // ---- scan command ----
