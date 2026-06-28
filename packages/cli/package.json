@@ -1,6 +1,6 @@
 {
   "name": "@nxlv-ai/lovable-audit",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Independent production-readiness security audit for Lovable apps — access control, Supabase RLS, exposed secrets, and more",
   "type": "module",
   "bin": {
