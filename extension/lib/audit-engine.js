@@ -365,21 +365,21 @@ async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
   if (['vulnerable', 'owner_only'].includes(result.bolaFilesSignature)) {
     findings.unshift({
       id: crypto.randomUUID(), ruleId: 'bola_files', severity: 'critical',
-      title: result.bolaFilesSignature === 'vulnerable' ? 'BOLA Confirmed: Source code accessible by any account' : 'Files accessible (owner access verified)',
+      title: result.bolaFilesSignature === 'vulnerable' ? 'BOLA Confirmed: Source code accessible cross-account' : 'Files accessible (owner access verified)',
       vector: 'bola_files', source: 'api.lovable.dev',
-      description: 'Lovable API exposes project files without proper ownership enforcement.',
+      description: 'Project files are served without an ownership check. As a security best practice, project files should be readable only by their owner.',
       evidence: `Probe signature: ${result.bolaFilesSignature} | Files accessible: ${result.filesScanned}`,
-      recommendation: 'Contact Lovable support to apply retroactive ownership fix.',
+      recommendation: 'Set this project to Private and review its access controls against current security standards. If the exposure persists, contact your platform provider\'s support.',
     });
   }
   if (['vulnerable', 'owner_only'].includes(result.bolaChatSignature)) {
     findings.unshift({
       id: crypto.randomUUID(), ruleId: 'bola_chat', severity: 'critical',
-      title: result.bolaChatSignature === 'vulnerable' ? 'BOLA Confirmed: Chat history accessible by any account' : 'Chat accessible (owner access verified)',
+      title: result.bolaChatSignature === 'vulnerable' ? 'BOLA Confirmed: Chat history accessible cross-account' : 'Chat accessible (owner access verified)',
       vector: 'bola_chat', source: 'api.lovable.dev',
-      description: 'AI conversation history exposed — may contain secrets, schemas, credentials.',
+      description: 'AI conversation history is served without an ownership check — it may contain secrets, schemas, or credentials.',
       evidence: `Probe signature: ${result.bolaChatSignature} | Messages scanned: ${result.chatMessagesScanned}`,
-      recommendation: 'Delete sensitive messages. Contact Lovable support.',
+      recommendation: 'Delete sensitive messages and rotate any exposed credentials. Restrict access to this project.',
     });
   }
 

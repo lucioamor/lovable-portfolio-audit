@@ -9,7 +9,7 @@ import {
 } from '../src/engines/saved-report';
 
 const VALID = JSON.stringify({
-  schema: 'nxlv-shield/v1',
+  schema: 'nxlv-audit/v1',
   scanTimestamp: '2026-06-26T00:00:00.000Z',
   summary: { totalProjects: 1, scannedProjects: 1 },
   results: [
@@ -31,9 +31,9 @@ const VALID = JSON.stringify({
 });
 
 describe('parseSavedReport', () => {
-  it('parses a valid nxlv-shield/v1 report', () => {
+  it('parses a valid nxlv-audit/v1 report', () => {
     const r = parseSavedReport(VALID);
-    expect(r.schema).toBe('nxlv-shield/v1');
+    expect(r.schema).toBe('nxlv-audit/v1');
     expect(r.results).toHaveLength(2);
   });
 
@@ -43,11 +43,11 @@ describe('parseSavedReport', () => {
 
   it('throws on a wrong/missing schema', () => {
     expect(() => parseSavedReport(JSON.stringify({ results: [], summary: {} })))
-      .toThrow(/nxlv-shield/);
+      .toThrow(/nxlv-audit/);
   });
 
   it('throws when results is not an array', () => {
-    expect(() => parseSavedReport(JSON.stringify({ schema: 'nxlv-shield/v1', summary: {}, results: 'x' })))
+    expect(() => parseSavedReport(JSON.stringify({ schema: 'nxlv-audit/v1', summary: {}, results: 'x' })))
       .toThrow(/results/);
   });
 });
@@ -78,7 +78,7 @@ describe('formatFixPrompts', () => {
 
   it('handles a report with no prompts gracefully', () => {
     const empty = parseSavedReport(JSON.stringify({
-      schema: 'nxlv-shield/v1', summary: {}, results: [],
+      schema: 'nxlv-audit/v1', summary: {}, results: [],
     }));
     expect(formatFixPrompts(collectFixPrompts(empty))).toMatch(/No AI fix prompts/);
   });

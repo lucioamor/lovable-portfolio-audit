@@ -263,7 +263,7 @@ async function main() {
               console.log(chalk.gray(`   Score: ${result.riskScore}/100 | ${result.severity.toUpperCase()} | BOLA-files: ${result.bolaFilesProbe.signature} | BOLA-chat: ${result.bolaChatProbe.signature}`));
 
               if (result.isPreNov2025) {
-                console.log(chalk.yellow('   ⚠️  Pre-Nov 2025: potentially in BOLA vulnerability window'));
+                console.log(chalk.yellow('   ℹ️  Older project — re-verify access controls (best practice)'));
               }
 
               for (const f of result.findings.slice(0, 5)) {
