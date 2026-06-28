@@ -5,8 +5,8 @@
 [![Security: Read-Only](https://img.shields.io/badge/Security-Read--Only-green.svg?style=flat-square)](#security-invariants)
 [![By Lucio Amorim — Lovable Ambassador](https://img.shields.io/badge/By-Lucio%20Amorim%20(Lovable%20Ambassador)-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim)
 
-> **The independent security audit layer for Lovable apps.**
-> Lovable's built-in scanner checks your code. NXLV Audit checks if it actually *works in production*.
+> **An independent, self-service security audit layer for Lovable apps.**
+> A complement to platform and in-IDE checks: NXLV Audit lets you verify, from the outside, that your own deployed project meets common security standards in production.
 
 ---
 
@@ -36,7 +36,7 @@ npx @nxlv/audit ci --output nxlv-audit.sarif
 
 ## 🚨 What is BOLA? Why Does This Matter?
 
-**Broken Object Level Authorization (BOLA / IDOR)** is the class of bug where a backend returns an object without checking that the caller owns it. Lovable projects created before November 2025 are the population most at risk of having their project files and AI chat history readable without an ownership check — which can expose hardcoded API keys, database schemas, and credentials shared during development.
+**Broken Object Level Authorization (BOLA / IDOR)** is the class of bug where a backend returns an object without checking that the caller owns it. It sits at the top of the OWASP API Security Top 10 because it is both common and high-impact, and any project can be affected regardless of platform or age. Confirming that project files and AI chat history are readable only by their owner is a baseline security best practice — when that ownership check is missing, hardcoded API keys, database schemas, and credentials shared during development can be exposed.
 
 **NXLV Audit's BOLA check** (`LOV-001`) probes — read-only, against your own account:
 - `GET /projects/{id}/git/files` → reveals if your file tree is exposed
@@ -104,7 +104,7 @@ values are HTML-escaped.
 ```
 🔴 My Production App
    Score: 100/100 | CATASTROPHIC | BOLA-files: vulnerable | BOLA-chat: vulnerable
-   ⚠️  Pre-Nov 2025: potentially in BOLA vulnerability window
+   ℹ️  Older project — re-verify access controls (best practice)
    [LOV-001] BOLA: Project Files Endpoint Exposed
            Evidence: GET /projects/abc-123/git/files → HTTP 200
    [LOV-001] BOLA: Chat History Endpoint Exposed
@@ -126,7 +126,7 @@ values are HTML-escaped.
   🔵 Low:              5
   🟢 Clean:            0
 
-  Pre-Nov-2025 (BOLA): 43 projects
+  Older projects:      43 projects
   BOLA Vulnerable:     7 projects
 ```
 
@@ -241,17 +241,19 @@ dispatch, and is guarded on a `LOVABLE_TOKEN` repository secret being present.
 
 ---
 
-## 🆚 vs. Lovable Built-in Scanner
+## 🆚 How NXLV Audit complements built-in checks
 
-| Lovable Built-in | NXLV Audit |
+NXLV Audit is not a replacement for any platform or in-IDE security tooling — it adds an independent, outside-in layer on top of it (defense in depth).
+
+| Built-in / in-IDE checks | NXLV Audit |
 |---|---|
-| Runs during development | Runs against deployed production |
-| Checks code before publish | Probes endpoints as an attacker would |
-| Static analysis of generated code | DAST: tests if RLS *actually works* |
-| Integrated in Lovable platform | Independent — works on any Lovable app |
-| Trusted (internal) | **Independent audit** — the external auditor |
+| Run during development | Runs against deployed production |
+| Review code before publish | Probes live endpoints from the outside |
+| Static analysis of generated code | DAST: verifies RLS behaves correctly at runtime |
+| Integrated in the platform | Independent — works on any deployed app |
+| First line of defense | **Independent second opinion** — defense in depth |
 
-> *"Lovable tells you your code looks secure. NXLV Audit tests if it actually is."*
+> *"Built-in checks review your code; NXLV Audit independently verifies the deployed result against common security standards."*
 
 ---
 

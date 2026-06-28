@@ -12,7 +12,7 @@ Built and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) 
 
 ## Why this exists
 
-Reports of credential leakage, data breaches, and access vulnerabilities affecting low-code platforms have become more common as these tools gain adoption — and Lovable is no exception to the ecosystem. When developers move fast, it's easy to leave API keys hardcoded, skip RLS configuration, or forget that chat history may be readable beyond its intended scope.
+As low-code and AI-assisted development tools gain adoption, credential leakage, data exposure, and access-control gaps have become a common class of risk across the whole ecosystem. When developers move fast, it's easy to leave API keys hardcoded, skip RLS configuration, or forget that chat history may be readable beyond its intended scope. These are general security pitfalls that apply to any platform, not faults specific to one.
 
 This tool doesn't place blame — it places the solution in your hands. Instead of waiting for a platform to alert you, you audit yourself, find what's exposed, and fix it. That's it.
 
@@ -24,7 +24,7 @@ This tool doesn't place blame — it places the solution in your hands. Instead 
 |---|---|
 | 🔑 **Secret Patterns** | Supabase `service_role`, OpenAI `sk-*`, Anthropic `sk-ant-*`, Stripe `sk_live_*`, AWS `AKIA*`, GitHub `ghp_*`/`gho_*`/`ghs_*`, Firebase/Google `AIza*`, SendGrid `SG.*`, Slack `xox*`, Twilio, Resend, Postgres connection strings, JWT/PEM private keys, and more |
 | 👤 **PII Patterns** | Email addresses, LinkedIn profiles, CPF/CNPJ (Brazilian tax IDs), credit card numbers (Luhn-shaped), phone numbers, US SSN, Stripe customer IDs (`cus_*`) |
-| 🛡️ **BOLA/IDOR Test** | Probes file and chat endpoints to verify whether your project returns `200 OK` without ownership validation — the core vulnerability affecting pre-Nov/2025 projects. The CLI supports an optional dual-probe mode (`--audit-token`) that confirms cross-account exposure instead of inferring it from a single request |
+| 🛡️ **BOLA/IDOR Test** | Probes file and chat endpoints to verify whether your project returns `200 OK` without ownership validation — a baseline access-control check aligned with the OWASP API Security Top 10 (BOLA). The CLI supports an optional dual-probe mode (`--audit-token`) that confirms cross-account exposure instead of inferring it from a single request |
 | 🗄️ **Supabase RLS Audit** | Non-invasive check against common table names using only the `anon` key, plus a copy-paste deep-RLS SQL checklist whose pasted result the CLI classifies into `DB-003`/`DB-004`/`DB-005`/`DB-008`/`DB-009` findings — no automated SQL is ever run against an external Supabase |
 | 📦 **Bundle / Source-map Scan** | The CLI fetches a target URL's HTML and JS chunks (read-only, bounded), flags exposed source maps and missing Subresource Integrity, and extracts a hardcoded Supabase URL + anon key to correlate with an RLS gap into a `compound_risk` finding |
 

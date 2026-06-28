@@ -106,21 +106,21 @@ async function scanProject(
   if (bolaFilesProbe.signature === 'vulnerable') {
     findings.push(makeFinding(
       'LOV-001', 'bola_files', 'critical',
-      'BOLA Confirmed: Project Files Accessible by Any Account',
-      'Dual-probe confirmed: a second Lovable account (audit token) received HTTP 200 on the /git/files endpoint. Any authenticated Lovable user can access source code of this project.',
+      'BOLA Confirmed: Project Files Accessible Cross-Account',
+      'Dual-probe confirmed: a second account (audit token) received HTTP 200 on the /git/files endpoint, indicating the project files are served without an ownership check. As a security best practice, project files should be readable only by their owner.',
       `Owner→HTTP ${bolaFilesProbe.status} | Audit→HTTP 200 | GET /projects/${project.id}/git/files`,
-      'Contact Lovable support immediately. Do not share project IDs publicly.',
-      'In Lovable, set this project to Private and contact Lovable support to apply the retroactive ownership fix. Rotate any secrets found in source code.',
+      'Restrict access to this project and rotate any exposed secrets. Do not share project IDs publicly.',
+      'Set this project to Private, review its access controls against current security standards, and rotate any secrets found in source code. If the exposure persists, contact your platform provider\'s support.',
       { confidence: 'confirmed' },
     ));
   } else if (bolaFilesProbe.signature === 'owner_only') {
     findings.push(makeFinding(
       'LOV-001', 'bola_files', 'high',
       'BOLA Risk: Files Accessible (Cross-Account Not Verified)',
-      'Your owner token received HTTP 200 on the /git/files endpoint. Cross-account access was not tested (no --audit-token provided). Projects created before Nov 2025 are likely affected by the BOLA vulnerability.',
+      'Your owner token received HTTP 200 on the /git/files endpoint. Cross-account access was not tested (no --audit-token provided). Confirming that this endpoint enforces an ownership check is a security best practice.',
       `Owner→HTTP ${bolaFilesProbe.status} | GET /projects/${project.id}/git/files | Run with --audit-token to confirm`,
       'Run nxlv-shield scan --audit-token <second-account-token> to confirm or rule out cross-account exposure.',
-      'In Lovable, go to project settings and verify the project is set to Private. Run again with a second Lovable account token to get a confirmed result.',
+      'In project settings, verify the project is set to Private. Run again with a second account token to get a confirmed result.',
       { confidence: 'likely' },
     ));
   }
@@ -128,18 +128,18 @@ async function scanProject(
   if (bolaChatProbe.signature === 'vulnerable') {
     findings.push(makeFinding(
       'LOV-001', 'bola_chat', 'critical',
-      'BOLA Confirmed: Chat History Accessible by Any Account',
-      'Dual-probe confirmed: a second Lovable account (audit token) received HTTP 200 on the /messages endpoint. AI conversation history is accessible cross-account and may contain credentials, schemas, or PII.',
+      'BOLA Confirmed: Chat History Accessible Cross-Account',
+      'Dual-probe confirmed: a second account (audit token) received HTTP 200 on the /messages endpoint, indicating AI conversation history is served without an ownership check. It may contain credentials, schemas, or PII.',
       `Owner→HTTP ${bolaChatProbe.status} | Audit→HTTP 200 | GET /projects/${project.id}/messages`,
-      'Delete sensitive messages. Contact Lovable support to secure this endpoint.',
-      'Review exposed chat history for API keys, passwords, or connection strings. Rotate any credentials found. Contact Lovable support.',
+      'Delete sensitive messages and rotate any exposed credentials. Restrict access to this project.',
+      'Review exposed chat history for API keys, passwords, or connection strings. Rotate any credentials found. If the exposure persists, contact your platform provider\'s support.',
       { confidence: 'confirmed' },
     ));
   } else if (bolaChatProbe.signature === 'owner_only') {
     findings.push(makeFinding(
       'LOV-001', 'bola_chat', 'high',
       'BOLA Risk: Chat History Accessible (Cross-Account Not Verified)',
-      'Your owner token received HTTP 200 on the /messages endpoint. Cross-account access not tested. Chat may contain credentials or PII shared during development.',
+      'Your owner token received HTTP 200 on the /messages endpoint. Cross-account access not tested. Chat may contain credentials or PII shared during development. Confirming an ownership check on this endpoint is a security best practice.',
       `Owner→HTTP ${bolaChatProbe.status} | GET /projects/${project.id}/messages | Run with --audit-token to confirm`,
       'Run nxlv-shield scan --audit-token <second-account-token> to confirm or rule out cross-account exposure.',
       'Avoid sharing credentials in Lovable chat. Run again with a second account token to confirm if this is a confirmed BOLA or owner-only access.',
@@ -151,11 +151,11 @@ async function scanProject(
   if (isPreNov2025) {
     findings.push(makeFinding(
       'LOV-006', 'pre_nov2025', 'medium',
-      'Project Created Before November 2025 (BOLA Window)',
-      'Projects created before November 2025 may be affected by the BOLA vulnerability (CVE disclosed April 2026) that was fixed only for projects created after that date.',
+      'Older Project — Re-verify Access Controls',
+      'This is an older project that may predate later platform and dependency hardening and may not have been re-audited recently. As a security best practice, older projects should have their access controls (ownership checks, RLS, secrets) periodically re-verified against current standards.',
       `Created: ${project.created_at}`,
-      'Verify the BOLA probe results above. If files or chat are accessible, this project needs immediate attention.',
-      'In Lovable, go to project settings and ensure Privacy is set to Private. If this project contains sensitive data, contact Lovable support immediately.',
+      'Review the BOLA probe results above. If files or chat are accessible, prioritize this project.',
+      'In project settings, ensure privacy is set to Private and confirm access controls follow current security best practices. If sensitive data may be exposed, rotate affected credentials promptly.',
       { confidence: 'likely', lovableLevel: 'L1' },
     ));
   }

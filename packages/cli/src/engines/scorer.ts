@@ -112,7 +112,7 @@ export function calculateRiskScore(
   }
   if (isPreNov2025) {
     addPoints('LOV-006', 'pre_nov2025', WEIGHTS.pre_nov2025,
-      'Project created before November 2025 — potentially affected by BOLA vulnerability window');
+      'Older project — access controls should be re-verified against current security standards');
   }
 
   // Rationale entries preserve the raw additive points (so the breakdown stays

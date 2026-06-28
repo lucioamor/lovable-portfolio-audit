@@ -41,7 +41,7 @@ export function formatConsoleReport(
   lines.push(chalk.gray(`   ID: ${result.projectId} | Score: ${result.riskScore}/100 | ${result.severity.toUpperCase()}`));
 
   if (result.isPreNov2025) {
-    lines.push(chalk.yellow('   ⚠️  Created before Nov 2025 — potentially affected by BOLA vulnerability'));
+    lines.push(chalk.yellow('   ℹ️  Older project — re-verify access controls (best practice)'));
   }
 
   if (result.bolaFilesProbe.signature === 'vulnerable') {
@@ -97,7 +97,7 @@ export function formatScanSummary(
     `  🔵 Low:              ${summary.lowCount}`,
     chalk.green(`  🟢 Clean:            ${summary.cleanCount}`),
     '',
-    `  Pre-Nov-2025 (BOLA): ${summary.preNov2025Count} projects`,
+    `  Older projects:      ${summary.preNov2025Count} projects`,
     `  BOLA Vulnerable:     ${summary.bolaVulnerableCount} projects`,
     '',
   ];
@@ -228,7 +228,7 @@ export function toMarkdown(
     `| 🔵 Low | ${summary.lowCount} |`,
     `| 🟢 Clean | ${summary.cleanCount} |`,
     '',
-    `**BOLA Vulnerable (pre-Nov 2025):** ${summary.bolaVulnerableCount} projects`,
+    `**BOLA Vulnerable:** ${summary.bolaVulnerableCount} projects`,
     '',
     '---',
     '',
@@ -244,7 +244,7 @@ export function toMarkdown(
     lines.push('');
     lines.push(`- **Score:** ${result.riskScore}/100 (${result.severity.toUpperCase()})`);
     lines.push(`- **Lovable Level Required:** ${result.lovableLevel}`);
-    lines.push(`- **Pre-Nov 2025:** ${result.isPreNov2025 ? '⚠️ Yes' : 'No'}`);
+    lines.push(`- **Older project:** ${result.isPreNov2025 ? '⚠️ Yes' : 'No'}`);
     lines.push(`- **BOLA Files:** ${result.bolaFilesProbe.signature === 'vulnerable' ? '🚨 EXPOSED' : '✅ Protected'}`);
     lines.push(`- **BOLA Chat:** ${result.bolaChatProbe.signature === 'vulnerable' ? '🚨 EXPOSED' : '✅ Protected'}`);
     lines.push('');
@@ -338,7 +338,7 @@ function projectSection(result: ProjectScanResult): string {
     `<span>ID: <code>${escapeHtml(result.projectId)}</code></span>`,
     `<span>Score: ${escapeHtml(result.riskScore)}/100</span>`,
     `<span>Lovable level: ${escapeHtml(result.lovableLevel)}</span>`,
-    `<span>Pre-Nov 2025: ${result.isPreNov2025 ? '⚠️ Yes' : 'No'}</span>`,
+    `<span>Older project: ${result.isPreNov2025 ? '⚠️ Yes' : 'No'}</span>`,
     `<span>BOLA files: ${escapeHtml(result.bolaFilesProbe.signature)}</span>`,
     `<span>BOLA chat: ${escapeHtml(result.bolaChatProbe.signature)}</span>`,
     '</div>',
