@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Saved-report loader (E2: report + fix-prompt)
+// @nxlv-ai/lovable-audit — Saved-report loader (E2: report + fix-prompt)
 // ============================================================
 // Parses a previously written `nxlv-audit/v1` JSON report (the shape produced
 // by toJSON) so reports can be regenerated and AI fix prompts extracted WITHOUT

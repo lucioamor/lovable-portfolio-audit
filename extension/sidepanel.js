@@ -1,5 +1,5 @@
 // ============================================================
-// Sidepanel v2 — NXLV Audit (Chrome Extension)
+// Sidepanel v2 — NXLV Lovable Portfolio Audit (Chrome Extension)
 // ============================================================
 
 import { isInitialized, initVault, isUnlocked, lock, putToken, getToken } from './lib/skills/token-vault.js';
@@ -48,7 +48,7 @@ const state = {
 const TOUR_STEPS = [
   {
     emoji: '🛡️', tab: 'scan', target: null, author: true,
-    title: 'Welcome to NXLV Audit',
+    title: 'Welcome to NXLV Lovable Portfolio Audit',
     text: 'A read-only, local-first security audit for the Lovable projects you own — BOLA/IDOR exposure, leaked secrets, and Supabase RLS gaps. Nothing ever leaves your browser. Here\'s the 30-second tour.',
   },
   {

@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Core Types (expanded from src/lib/types.ts)
+// @nxlv-ai/lovable-audit — Core Types (expanded from src/lib/types.ts)
 // ============================================================
 
 // ---- Rule DSL Types ----

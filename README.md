@@ -1,4 +1,4 @@
-# NXLV Audit — Lovable Portfolio Audit
+# NXLV Lovable Portfolio Audit — Lovable Portfolio Audit
 
 > The self-audit security toolkit for Lovable builders — by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim), **Lovable Ambassador**.
 
@@ -8,7 +8,7 @@ Run it against your own account. Get a clear report. Fix what needs fixing.
 
 Built and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — the same hands behind the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) (`/wireframe`, `/debate`, `/unbot`). This project is part of a wider toolkit for builders who don't just ship Lovable apps — they verify, harden, and stand behind them.
 
-[![Author: Lucio Amorim](https://img.shields.io/badge/By-Lucio%20Amorim-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim) [![Role: Lovable Ambassador](https://img.shields.io/badge/Lovable-Ambassador-8b5cf6?style=flat-square)](https://linkedin.com/in/lucioamorim) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-2ed573?style=flat-square)](./LICENSE)
+[![Author: Lucio Amorim](https://img.shields.io/badge/By-Lucio%20Amorim-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim) [![Role: Lovable Ambassador](https://img.shields.io/badge/Lovable-Ambassador-8b5cf6?style=flat-square)](https://linkedin.com/in/lucioamorim) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-2ed573?style=flat-square)](./LICENSE)
 
 ## Why this exists
 
@@ -62,28 +62,28 @@ Runs in your browser, reads your own `lovable.dev` session — no manual token h
 3. Click **Load unpacked** and select the `extension/` directory from this repo
 4. Pin the icon to your toolbar, open the side panel, and run a scan
 
-### 🖥️ CLI (`@nxlv/audit`)
+### 🖥️ CLI (`@nxlv-ai/lovable-audit`)
 
 A standalone Node CLI (Node ≥ 18) for terminal and CI use. It needs your Lovable Bearer token, which it reads from `--token` or the `LOVABLE_TOKEN` environment variable.
 
 ```bash
 # Scan your account (interactive / local)
-npx @nxlv/audit scan --token <bearer>
+npx @nxlv-ai/lovable-audit scan --token <bearer>
 
 # Or via env var
-LOVABLE_TOKEN=<bearer> npx @nxlv/audit scan
+LOVABLE_TOKEN=<bearer> npx @nxlv-ai/lovable-audit scan
 
 # Machine-readable / shareable output
-npx @nxlv/audit scan --token <bearer> --format json   --output results.json
-npx @nxlv/audit scan --token <bearer> --format sarif   --output results.sarif
-npx @nxlv/audit scan --token <bearer> --format markdown --output report.md
-npx @nxlv/audit scan --token <bearer> --format html    --output report.html
+npx @nxlv-ai/lovable-audit scan --token <bearer> --format json   --output results.json
+npx @nxlv-ai/lovable-audit scan --token <bearer> --format sarif   --output results.sarif
+npx @nxlv-ai/lovable-audit scan --token <bearer> --format markdown --output report.md
+npx @nxlv-ai/lovable-audit scan --token <bearer> --format html    --output report.html
 
 # Scan a deployed URL's headers, source maps, and bundle
-npx @nxlv/audit scan --token <bearer> --url https://myapp.lovable.app
+npx @nxlv-ai/lovable-audit scan --token <bearer> --url https://myapp.lovable.app
 
 # Confirm token validity only
-npx @nxlv/audit verify --token <bearer>
+npx @nxlv-ai/lovable-audit verify --token <bearer>
 ```
 
 **Getting your token:** open `lovable.dev` while logged in, open DevTools (F12) → Network, filter for `api.lovable.dev`, and copy the `Authorization: Bearer <token>` value.
@@ -95,7 +95,7 @@ npx @nxlv/audit verify --token <bearer>
 The `ci` subcommand is optimized for pipelines: it writes SARIF and exits non-zero when critical or catastrophic findings are present.
 
 ```bash
-LOVABLE_TOKEN=<bearer> npx @nxlv/audit ci --output nxlv-audit.sarif
+LOVABLE_TOKEN=<bearer> npx @nxlv-ai/lovable-audit ci --output nxlv-audit.sarif
 ```
 
 A ready-to-use GitHub Action workflow lives in `.github/workflows/nxlv-audit.yml`, and the published privacy policy is in `PRIVACY.md`.
@@ -104,17 +104,17 @@ A ready-to-use GitHub Action workflow lives in `.github/workflows/nxlv-audit.yml
 
 ```bash
 # Regenerate a report from a saved JSON result — no re-scan
-npx @nxlv/audit report results.json --format html --output report.html
+npx @nxlv-ai/lovable-audit report results.json --format html --output report.html
 
 # Extract the copy-paste AI fix prompts from a saved result
-npx @nxlv/audit fix-prompt results.json --output prompts.md
+npx @nxlv-ai/lovable-audit fix-prompt results.json --output prompts.md
 
 # Verify the HMAC signature of an exported evidence pack
-npx @nxlv/audit verify-evidence pack.json --passphrase <device-key>
+npx @nxlv-ai/lovable-audit verify-evidence pack.json --passphrase <device-key>
 
 # Track drift vs a baseline and POST a summary to a webhook
 # (payload carries only counts + finding identifiers — no tokens, no raw bodies)
-npx @nxlv/audit scan --token <bearer> --baseline --webhook https://example.com/hook
+npx @nxlv-ai/lovable-audit scan --token <bearer> --baseline --webhook https://example.com/hook
 ```
 
 ### Developer tooling
@@ -191,7 +191,7 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 │           ├── rls-checklist.js   # Deep-RLS copy-paste checklist classifier
 │           └── pattern-catalog.js # Dynamic rule catalog (remote fetch + toggle + TTL cache)
 │
-├── packages/cli/                  # Standalone CLI (@nxlv/audit, TypeScript)
+├── packages/cli/                  # Standalone CLI (@nxlv-ai/lovable-audit, TypeScript)
 │   └── src/
 │       ├── index.ts               # CLI entry — scan / verify / ci commands
 │       ├── commands/scan.ts       # Scan orchestrator
@@ -225,7 +225,7 @@ This tool is for auditing your own account. The Chrome Extension operates only o
 
 Created and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — **Lovable Ambassador**.
 
-Lucio builds practical infrastructure for people who take Lovable seriously: not just to generate apps, but to review them, secure them, move context between tools, and ship with confidence. NXLV Audit is the security half of that toolkit; the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) — `/wireframe`, `/debate`, `/unbot` — is the other half.
+Lucio builds practical infrastructure for people who take Lovable seriously: not just to generate apps, but to review them, secure them, move context between tools, and ship with confidence. NXLV Lovable Portfolio Audit is the security half of that toolkit; the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) — `/wireframe`, `/debate`, `/unbot` — is the other half.
 
 If this tool saved you from shipping an exposed `service_role` key, that's the whole point. Connect on [LinkedIn](https://linkedin.com/in/lucioamorim) and tell me what it caught.
 
@@ -234,10 +234,10 @@ If this tool saved you from shipping an exposed `service_role` key, that's the w
 
 ## License
 
-Licensed under [**Creative Commons Attribution 4.0 International (CC BY 4.0)**](./LICENSE).
+Licensed under [**Apache 2.0**](./LICENSE).
 
 In plain terms: **use it freely** — including commercially — but if you reproduce it, redistribute it, or fold any part of it into a product of your own, you **must credit [Lucio Amorim](https://linkedin.com/in/lucioamorim) as a contributor**, link back to his LinkedIn, and link to the license.
 
 Suggested attribution line:
 
-> Includes work by Lucio Amorim (Lovable Ambassador) — https://linkedin.com/in/lucioamorim — licensed under CC BY 4.0.
+> Includes work by Lucio Amorim (Lovable Ambassador) — https://linkedin.com/in/lucioamorim — licensed under Apache 2.0.

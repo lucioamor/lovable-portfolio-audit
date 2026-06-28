@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Scan Command
+// @nxlv-ai/lovable-audit — Scan Command
 // ============================================================
 // Main orchestrator: lists projects → probes BOLA → scans secrets
 // → tests RLS → generates findings → scores → reports.

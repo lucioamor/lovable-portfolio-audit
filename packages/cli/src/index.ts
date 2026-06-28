@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // ============================================================
-// @nxlv/audit — CLI Entry Point
+// @nxlv-ai/lovable-audit — CLI Entry Point
 // ============================================================
 // Usage:
-//   npx @nxlv/audit scan [options]
-//   npx @nxlv/audit scan --url https://myapp.lovable.app
-//   npx @nxlv/audit scan --token <bearer> --deep
-//   npx @nxlv/audit scan --format sarif --output results.sarif
+//   npx @nxlv-ai/lovable-audit scan [options]
+//   npx @nxlv-ai/lovable-audit scan --url https://myapp.lovable.app
+//   npx @nxlv-ai/lovable-audit scan --token <bearer> --deep
+//   npx @nxlv-ai/lovable-audit scan --format sarif --output results.sarif
 // ============================================================
 
 import { Command } from 'commander';
@@ -66,7 +66,7 @@ function printRlsFindings(findings: Finding[], policyChecks: RLSPolicyCheck[]): 
   const lines: string[] = [
     '',
     chalk.bold('═══════════════════════════════════════════════'),
-    chalk.bold('  🛡️  NXLV Audit — Deep RLS Classification'),
+    chalk.bold('  🛡️  NXLV Lovable Portfolio Audit — Deep RLS Classification'),
     chalk.bold('═══════════════════════════════════════════════'),
     '',
     `  Tables analyzed:   ${s.tables}`,
@@ -531,7 +531,7 @@ async function main() {
       const sarif = toSARIF(results);
       writeFileSync(opts.output, sarif, 'utf-8');
 
-      console.log(`NXLV Audit CI: ${summary.scannedProjects} projects, ${summary.criticalCount + summary.catastrophicCount} critical findings`);
+      console.log(`NXLV Lovable Portfolio Audit CI: ${summary.scannedProjects} projects, ${summary.criticalCount + summary.catastrophicCount} critical findings`);
 
       if (summary.catastrophicCount > 0 || summary.criticalCount > 0) {
         process.exit(1);

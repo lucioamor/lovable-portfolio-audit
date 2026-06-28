@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Deep RLS Checklist (DB-003/004/005/008/009)
+// @nxlv-ai/lovable-audit — Deep RLS Checklist (DB-003/004/005/008/009)
 // ============================================================
 // pg_policies / pg_class introspection CANNOT be done with the anon key, and
 // the roadmap (§9) forbids running SQL automatically against third-party
@@ -47,7 +47,7 @@ select jsonb_build_object(
 export function renderChecklist(): string {
   return [
     '═══════════════════════════════════════════════════════════',
-    '  🛡️  NXLV Audit — Deep RLS Checklist (copy-paste audit)',
+    '  🛡️  NXLV Lovable Portfolio Audit — Deep RLS Checklist (copy-paste audit)',
     '═══════════════════════════════════════════════════════════',
     '',
     'This audits RLS depth (DB-003/004/005/008/009) WITHOUT touching your',
