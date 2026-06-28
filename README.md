@@ -56,28 +56,28 @@ Runs in your browser, reads your own `lovable.dev` session — no manual token h
 3. Click **Load unpacked** and select the `extension/` directory from this repo
 4. Pin the icon to your toolbar, open the side panel, and run a scan
 
-### 🖥️ CLI (`@nxlv/shield`)
+### 🖥️ CLI (`@nxlv/audit`)
 
 A standalone Node CLI (Node ≥ 18) for terminal and CI use. It needs your Lovable Bearer token, which it reads from `--token` or the `LOVABLE_TOKEN` environment variable.
 
 ```bash
 # Scan your account (interactive / local)
-npx @nxlv/shield scan --token <bearer>
+npx @nxlv/audit scan --token <bearer>
 
 # Or via env var
-LOVABLE_TOKEN=<bearer> npx @nxlv/shield scan
+LOVABLE_TOKEN=<bearer> npx @nxlv/audit scan
 
 # Machine-readable / shareable output
-npx @nxlv/shield scan --token <bearer> --format json   --output results.json
-npx @nxlv/shield scan --token <bearer> --format sarif   --output results.sarif
-npx @nxlv/shield scan --token <bearer> --format markdown --output report.md
-npx @nxlv/shield scan --token <bearer> --format html    --output report.html
+npx @nxlv/audit scan --token <bearer> --format json   --output results.json
+npx @nxlv/audit scan --token <bearer> --format sarif   --output results.sarif
+npx @nxlv/audit scan --token <bearer> --format markdown --output report.md
+npx @nxlv/audit scan --token <bearer> --format html    --output report.html
 
 # Scan a deployed URL's headers, source maps, and bundle
-npx @nxlv/shield scan --token <bearer> --url https://myapp.lovable.app
+npx @nxlv/audit scan --token <bearer> --url https://myapp.lovable.app
 
 # Confirm token validity only
-npx @nxlv/shield verify --token <bearer>
+npx @nxlv/audit verify --token <bearer>
 ```
 
 **Getting your token:** open `lovable.dev` while logged in, open DevTools (F12) → Network, filter for `api.lovable.dev`, and copy the `Authorization: Bearer <token>` value.
@@ -89,10 +89,10 @@ npx @nxlv/shield verify --token <bearer>
 The `ci` subcommand is optimized for pipelines: it writes SARIF and exits non-zero when critical or catastrophic findings are present.
 
 ```bash
-LOVABLE_TOKEN=<bearer> npx @nxlv/shield ci --output nxlv-shield.sarif
+LOVABLE_TOKEN=<bearer> npx @nxlv/audit ci --output nxlv-audit.sarif
 ```
 
-A ready-to-use GitHub Action workflow lives in `.github/workflows/nxlv-shield.yml`, and the published privacy policy is in `PRIVACY.md`.
+A ready-to-use GitHub Action workflow lives in `.github/workflows/nxlv-audit.yml`, and the published privacy policy is in `PRIVACY.md`.
 
 #### More commands
 

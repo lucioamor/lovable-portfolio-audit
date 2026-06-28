@@ -1,12 +1,23 @@
 // ============================================================
-// Sidepanel v2 — NXLV Shield (Chrome Extension)
+// Sidepanel v2 — NXLV Audit (Chrome Extension)
 // ============================================================
 
 import { isInitialized, initVault, isUnlocked, lock, putToken, getToken } from './lib/skills/token-vault.js';
 import { hasConsent, grantConsent } from './lib/skills/consent-gate.js';
 import { listPatterns, togglePattern, resetToggles, loadCatalog } from './lib/skills/pattern-catalog.js';
 import { buildEvidencePack, deriveSigningKey } from './lib/evidence-pack.js';
-import { RLS_AUDIT_SQL, parseRlsResult, classifyRlsAudit } from './lib/skills/rls-checklist.js';
+import { RLS_AUDIT_SQL, parseRlsResult, classifyRlsAudit, summarizeRlsAudit, buildRemediationPlan, renderRlsReportMarkdown } from './lib/skills/rls-checklist.js';
+import { recordLog, installPersistentSink } from './lib/skills/diagnostics.js';
+
+// Capture UI-side errors into the shared diagnostics log so the report includes
+// failures that happen in the sidepanel realm (not just the service worker).
+installPersistentSink('sidepanel');
+window.addEventListener('error', (e) => {
+  recordLog({ timestamp: new Date().toISOString(), level: 'error', message: `uncaught: ${e.message}`, context: { _src: 'sidepanel', file: e.filename, line: e.lineno } });
+});
+window.addEventListener('unhandledrejection', (e) => {
+  recordLog({ timestamp: new Date().toISOString(), level: 'error', message: `unhandled rejection: ${e.reason?.message || e.reason}`, context: { _src: 'sidepanel' } });
+});
 
 // ============================================================
 // State
@@ -25,6 +36,7 @@ const state = {
   activeTab: 'scan',
   filterText: '',
   filterSeverity: '',
+  onboarded: false,
 };
 
 // ============================================================
@@ -69,6 +81,10 @@ async function initState() {
   // Load scan delay setting
   const { lpa_delay } = await storageGet('lpa_delay');
   if (lpa_delay) $('setting-delay').value = lpa_delay;
+
+  // Onboarding flag
+  const { lpa_onboarded } = await storageGet('lpa_onboarded');
+  state.onboarded = !!lpa_onboarded;
 }
 
 function listenForScanMessages() {
@@ -105,7 +121,47 @@ function storageSet(obj) {
 function renderAll() {
   renderModals();
   renderBadges();
+  renderOnboarding();
+  renderNextStep();
   renderTab(state.activeTab);
+}
+
+// ============================================================
+// Onboarding coach + "what to do now" banner
+// ============================================================
+
+function renderOnboarding() {
+  // Only after the legal gate is cleared, and only until dismissed once.
+  setVisible('onboard-card', state.legalAccepted && !state.onboarded);
+}
+
+function computeNextStep() {
+  if (!state.legalAccepted) return null; // legal modal handles this
+  if (!state.hasSession && !state.vaultUnlocked)
+    return { text: '① Log in to lovable.dev (or unlock your vault in Settings) so the scanner can list your projects.', tone: 'warn' };
+  if (state.scanning)
+    return { text: 'Scanning… results stream in as each project finishes.', tone: 'info' };
+  if (!state.results.length)
+    return { text: '② Ready — press ▶ Start Scan to audit your projects.', tone: 'info' };
+  const s = state.summary || {};
+  const crit = (s.catastrophicCount || 0) + (s.criticalCount || 0);
+  const high = s.highCount || 0;
+  if (crit > 0)
+    return { text: `③ ${crit} critical issue(s) found — open Results to review evidence and fixes.`, tone: 'bad', goto: 'results' };
+  if (high > 0)
+    return { text: `③ ${high} high-severity issue(s) found — open Results for details.`, tone: 'bad', goto: 'results' };
+  return { text: '③ Scan complete — no critical issues. Open Results for the full breakdown.', tone: 'good', goto: 'results' };
+}
+
+function renderNextStep() {
+  const el = $('next-step');
+  if (!el) return;
+  const step = computeNextStep();
+  if (!step) { setVisible('next-step', false); return; }
+  el.className = `next-step tone-${step.tone}${step.goto ? ' clickable' : ''}`;
+  el.textContent = step.text;
+  el.onclick = step.goto ? () => { state.activeTab = step.goto; renderTab(step.goto); } : null;
+  setVisible('next-step', true);
 }
 
 function renderModals() {
@@ -161,6 +217,7 @@ function renderTab(tab) {
   const tabBtn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
   if (tabBtn) tabBtn.classList.add('active');
 
+  if (tab === 'scan') renderNextStep();
   if (tab === 'results') renderResults();
   if (tab === 'history') renderHistory();
   if (tab === 'settings') renderSettings();
@@ -211,6 +268,7 @@ function onScanComplete(summary) {
 
   // Reload history
   msg('GET_HISTORY').then(d => { state.history = d?.runs || []; });
+  renderNextStep();
 }
 
 function onScanError(error) {
@@ -220,6 +278,7 @@ function onScanError(error) {
   $('scan-btn').textContent = '▶ Start Scan';
   $('progress-label').textContent = `Error: ${error}`;
   setVisible('scan-progress', true);
+  renderNextStep();
 }
 
 // ============================================================
@@ -267,6 +326,12 @@ function renderProjectCard(r) {
 
   const extraCount = findings.length > 5 ? `<div class="finding-more">+${findings.length - 5} more findings</div>` : '';
 
+  const files = probeSummary(r.bolaFilesSignature, r.bolaFilesStatus);
+  const chat  = probeSummary(r.bolaChatSignature, r.bolaChatStatus);
+  const findingsLabel = hasFindings
+    ? `${findings.length} finding${findings.length === 1 ? '' : 's'}`
+    : 'no findings';
+
   return `
     <div class="project-card ${sevClass}">
       <div class="project-card-header">
@@ -279,16 +344,33 @@ function renderProjectCard(r) {
           <span class="muted">${fmtDate(r.scanTimestamp)}</span>
         </div>
       </div>
+      <div class="probe-row probe-row-visible">
+        <span class="probe-pill probe-${files.cls}" title="Files probe: ${esc(files.title)}">Files: ${esc(files.text)}</span>
+        <span class="probe-pill probe-${chat.cls}" title="Chat probe: ${esc(chat.title)}">Chat: ${esc(chat.text)}</span>
+        ${r.supabaseDetected ? `<span class="badge-warn">Supabase</span>` : ''}
+        <span class="probe-findings muted">${findingsLabel}${hasFindings ? ' ▾' : ''}</span>
+      </div>
       <div class="project-detail hidden">
-        <div class="probe-row">
-          <span>Files: <code>${r.bolaFilesSignature}</code></span>
-          <span>Chat: <code>${r.bolaChatSignature}</code></span>
-          ${r.supabaseDetected ? `<span class="badge-warn">Supabase detected</span>` : ''}
-        </div>
         ${findingHtml}
         ${extraCount}
       </div>
     </div>`;
+}
+
+// Human-readable summary of a BOLA probe signature, including the raw HTTP
+// status so "error" tells you *why* (e.g. endpoint drift → 404/405).
+function probeSummary(sig, status) {
+  const code = (status && status !== 200) ? ` (${status})` : '';
+  switch (sig) {
+    case 'vulnerable':   return { text: 'BOLA ⚠', cls: 'bad',     title: 'Cross-account access confirmed (vulnerable)' };
+    case 'owner_only':   return { text: 'owner ✓', cls: 'warn',    title: 'Owner can access; no second token, so BOLA not proven' };
+    case 'patched':      return { text: 'patched', cls: 'ok',      title: 'Owner 200 / audit account denied' };
+    case 'inaccessible': return { text: 'no access', cls: 'neutral', title: 'Owner request denied (401/403)' };
+    case 'auth_required':return { text: 'auth req', cls: 'neutral', title: 'Endpoint requires auth' };
+    case 'rate_limited': return { text: 'throttled', cls: 'neutral', title: 'Rate limited (429)' };
+    case 'error':        return { text: `error${code || (status === 0 ? ' (network)' : '')}`, cls: 'err', title: `Probe failed — HTTP ${status ?? '?'}. Non-200/401/403 (e.g. endpoint drift)` };
+    default:             return { text: '—', cls: 'neutral', title: 'Not probed' };
+  }
 }
 
 // ============================================================
@@ -306,20 +388,69 @@ function renderHistory() {
 
   setVisible('compare-runs-btn', state.history.length >= 2);
 
-  list.innerHTML = state.history.map((run, idx) => `
+  list.innerHTML = state.history.map((run, idx) => renderHistoryRow(run, idx)).join('');
+
+  // Expand/collapse per-run detail on click
+  list.querySelectorAll('.history-row').forEach(row => {
+    row.addEventListener('click', () => {
+      row.querySelector('.history-detail')?.classList.toggle('hidden');
+    });
+  });
+}
+
+function renderHistoryRow(run, idx) {
+  const sc = run.severityCounts || {};
+  const sevOrder = ['catastrophic', 'critical', 'high', 'medium', 'low', 'clean'];
+  const sevChips = sevOrder
+    .filter(s => sc[s])
+    .map(s => `<span class="sev-chip"><span class="sev-dot sev-${s}"></span>${sc[s]}</span>`)
+    .join('');
+
+  // Worst projects by score (byProject map persisted in the run summary)
+  const byProject = run.byProject || {};
+  const worst = Object.entries(byProject)
+    .map(([id, p]) => ({ id, ...p }))
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, 5);
+
+  const worstHtml = worst.length
+    ? worst.map(p => `
+        <div class="history-proj-row">
+          <span class="sev-dot sev-${p.severity || 'medium'}"></span>
+          <span class="history-proj-id">${esc(p.id.slice(0, 8))}</span>
+          <span class="muted">${p.score ?? '—'} pts · ${esc(p.severity || '—')}</span>
+        </div>`).join('')
+    : '<div class="muted">No per-project detail stored for this run.</div>';
+
+  return `
     <div class="history-row">
-      <div class="history-run-info">
-        <span class="history-idx">#${idx + 1}</span>
-        <span class="history-date">${fmtDate(run.startedAt)}</span>
-        <span class="history-projects">${run.projectCount} projects</span>
+      <div class="history-row-head">
+        <div class="history-run-info">
+          <span class="history-idx">#${idx + 1}</span>
+          <span class="history-date">${fmtDate(run.startedAt)}</span>
+          <span class="history-projects">${run.projectCount} projects · ${run.findingCount ?? 0} findings</span>
+        </div>
+        <div class="history-counts">
+          ${sevChips || '<span class="muted">clean</span>'}
+          <span class="muted">avg ${run.scoreAverage}pts ▾</span>
+        </div>
       </div>
-      <div class="history-counts">
-        ${run.severityCounts?.catastrophic ? `<span class="sev-dot sev-catastrophic"></span>${run.severityCounts.catastrophic}` : ''}
-        ${run.severityCounts?.critical     ? `<span class="sev-dot sev-critical"></span>${run.severityCounts.critical}` : ''}
-        ${run.severityCounts?.high         ? `<span class="sev-dot sev-high"></span>${run.severityCounts.high}` : ''}
-        <span class="muted">avg ${run.scoreAverage}pts</span>
+      <div class="history-detail hidden">
+        <div class="history-detail-grid">
+          <span>Projects: <strong>${run.projectCount}</strong></span>
+          <span>Findings: <strong>${run.findingCount ?? 0}</strong></span>
+          <span>Avg score: <strong>${run.scoreAverage}</strong></span>
+          <span>Catastrophic: <strong>${sc.catastrophic || 0}</strong></span>
+          <span>Critical: <strong>${sc.critical || 0}</strong></span>
+          <span>High: <strong>${sc.high || 0}</strong></span>
+          <span>Medium: <strong>${sc.medium || 0}</strong></span>
+          <span>Low: <strong>${sc.low || 0}</strong></span>
+          <span>Clean: <strong>${sc.clean || 0}</strong></span>
+        </div>
+        <div class="history-worst-label">Highest-risk projects</div>
+        ${worstHtml}
       </div>
-    </div>`).join('');
+    </div>`;
 }
 
 async function renderDeltaView() {
@@ -382,6 +513,8 @@ async function renderSettings() {
     if ($('passive-count')) {
       $('passive-count').textContent = `${fc} findings · ${ec} endpoints${cc ? ` · ${cc} new-endpoint candidate(s)` : ''}`;
     }
+    const { lpa_email_ignore = [] } = await storageGet('lpa_email_ignore');
+    if ($('email-ignore-count')) $('email-ignore-count').textContent = `${lpa_email_ignore.length} email(s) ignored`;
   } catch (_) {}
 
   // Load pattern list
@@ -492,6 +625,8 @@ function initLegalGate() {
     state.vaultUnlocked    = await isUnlocked();
     renderModals();
     renderBadges();
+    renderOnboarding();
+    renderNextStep();
   });
 
   $('legal-reject-btn').addEventListener('click', () => {
@@ -561,6 +696,12 @@ function attachListeners() {
     try { await navigator.clipboard.writeText(RLS_AUDIT_SQL); flash('rls-copy-sql', '✓ Copied'); }
     catch { /* clipboard blocked — show SQL so user can copy manually */ $('rls-sql').textContent = RLS_AUDIT_SQL; $('rls-sql').classList.remove('hidden'); }
   });
+  $('rls-import-csv')?.addEventListener('click', () => $('rls-csv-file')?.click());
+  $('rls-csv-file')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    handleRlsCsvImport(file);
+    e.target.value = ''; // allow re-importing the same file
+  });
   $('rls-classify')?.addEventListener('click', handleRlsClassify);
   $('export-btn')?.addEventListener('click', exportResults);
   $('clear-btn')?.addEventListener('click', clearResults);
@@ -625,6 +766,109 @@ function attachListeners() {
     await msg('PASSIVE_CLEAR');
     await renderSettings();
   });
+  $('passive-details-btn')?.addEventListener('click', togglePassiveDetails);
+  $('email-ignore-save')?.addEventListener('click', saveEmailIgnore);
+
+  // Onboarding coach dismiss
+  $('onboard-dismiss')?.addEventListener('click', async () => {
+    state.onboarded = true;
+    await storageSet({ lpa_onboarded: true });
+    renderOnboarding();
+  });
+
+  // Settings — diagnostics
+  $('diag-build-btn')?.addEventListener('click', generateDiagnostics);
+  $('diag-clear-logs-btn')?.addEventListener('click', async () => {
+    await msg('DIAGNOSTICS_CLEAR_LOGS');
+    flash('diag-clear-logs-btn', '✓ Cleared');
+  });
+}
+
+// ============================================================
+// Diagnostics (repair-session export)
+// ============================================================
+
+async function generateDiagnostics() {
+  const btn = $('diag-build-btn');
+  const status = $('diag-status');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Building report…';
+  try {
+    const res = await msg('DIAGNOSTICS_BUILD');
+    if (!res?.ok) throw new Error(res?.error || 'build failed');
+    const text = res.text;
+
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: `nxlv-diagnostics-${stamp}.txt` });
+    a.click();
+    URL.revokeObjectURL(url);
+
+    let note = '✓ Saved .txt';
+    try { await navigator.clipboard.writeText(text); note += ' + copied to clipboard'; }
+    catch { note += ' (clipboard blocked — use the file)'; }
+    if (status) { status.textContent = note; status.classList.remove('hidden'); }
+  } catch (e) {
+    if (status) { status.textContent = `Failed: ${e.message}`; status.classList.remove('hidden'); }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+async function sha256_16(v) {
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v));
+    return [...new Uint8Array(buf)].slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch { return null; }
+}
+
+// Add emails to the passive ignore-list. Only their hash is stored (the raw email
+// never persists), matching how passive findings are hashed (lowercased).
+async function saveEmailIgnore() {
+  const ta = $('setting-email-ignore');
+  if (!ta) return;
+  const emails = ta.value.split(/[\n,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!emails.length) { flash('email-ignore-save', 'No emails'); return; }
+
+  const { lpa_email_ignore = [] } = await storageGet('lpa_email_ignore');
+  const hashes = new Set(lpa_email_ignore);
+  for (const e of emails) { const h = await sha256_16(e); if (h) hashes.add(h); }
+  const arr = [...hashes];
+  await storageSet({ lpa_email_ignore: arr });
+
+  // Purge already-stored passive findings that match the ignore-list.
+  const { lpa_passive_findings = [] } = await storageGet('lpa_passive_findings');
+  const set = new Set(arr);
+  const filtered = lpa_passive_findings.filter(f => !(f.patternId === 'pii_email' && f.hash && set.has(f.hash)));
+  if (filtered.length !== lpa_passive_findings.length) await storageSet({ lpa_passive_findings: filtered });
+
+  ta.value = '';
+  await renderSettings();
+  flash('email-ignore-save', `✓ ${arr.length} ignored`);
+}
+
+async function togglePassiveDetails() {
+  const pre = $('passive-details');
+  if (!pre) return;
+  if (!pre.classList.contains('hidden')) { pre.classList.add('hidden'); return; }
+  const d = await msg('PASSIVE_GET');
+  const obs = d?.endpoints || {};
+  const cand = d?.candidates || {};
+  const obsLines = Object.keys(obs)
+    .sort((a, b) => (obs[b].count || 0) - (obs[a].count || 0))
+    .map(k => `${obs[k].lastMethod || 'GET'} ${k}  ×${obs[k].count}  ${obs[k].lastStatus ?? '—'}`);
+  const candLines = Object.keys(cand)
+    .sort()
+    .map(k => `${cand[k].method || 'GET'} ${k}  ${cand[k].status ?? '—'}`);
+  pre.textContent =
+    `OBSERVED ENDPOINTS (${obsLines.length}) — what lovable.dev actually called:\n` +
+    (obsLines.join('\n') || '  none yet — browse lovable.dev with passive sensor ON') +
+    `\n\nNEW-ENDPOINT CANDIDATES (${candLines.length}) — not in the extension's known list:\n` +
+    (candLines.join('\n') || '  none');
+  pre.classList.remove('hidden');
 }
 
 // ============================================================
@@ -650,6 +894,7 @@ async function startScan() {
   $('scan-btn').textContent = '⏳ Scanning...';
   $('progress-bar').style.width = '0%';
   $('progress-label').textContent = 'Initializing...';
+  renderNextStep();
 
   const { lpa_delay } = await storageGet('lpa_delay');
 
@@ -672,6 +917,7 @@ async function stopScan() {
   $('scan-btn').disabled = false;
   $('scan-btn').textContent = '▶ Start Scan';
   setVisible('scan-progress', false);
+  renderNextStep();
 }
 
 async function loadDemo() {
@@ -680,6 +926,7 @@ async function loadDemo() {
   state.summary    = res?.summary || null;
   state.isDemoMode = true;
   renderSummaryGrid(state.summary);
+  renderNextStep();
 }
 
 // ============================================================
@@ -706,7 +953,7 @@ async function exportResults() {
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), {
     href: url,
-    download: `nxlv-shield-${new Date().toISOString().slice(0, 10)}.json`,
+    download: `nxlv-audit-${new Date().toISOString().slice(0, 10)}.json`,
   });
   a.click();
   URL.revokeObjectURL(url);
@@ -746,16 +993,54 @@ function handleRlsClassify() {
   const container = $('rls-findings');
   if (!container) return;
   if (!raw.trim()) {
-    container.innerHTML = `<div class="empty-state">Paste the audit cell value first.</div>`;
+    container.innerHTML = `<div class="empty-state">Import the CSV or paste the audit cell value first.</div>`;
     return;
   }
   try {
-    const { findings, policyChecks } = classifyRlsAudit(parseRlsResult(raw));
+    const { findings, policyChecks } = classifyRlsAudit(parseRlsResult(extractAuditCell(raw)));
     renderRlsFindings(findings, policyChecks);
   } catch (err) {
     container.innerHTML = `<div class="empty-state error">${esc(err.message)}</div>`;
   }
 }
+
+// Accepts: raw JSON, a CSV-escaped cell ("...""..."), or the whole exported
+// CSV file (header "audit" + one quoted field). Returns clean JSON text.
+function extractAuditCell(text) {
+  let t = String(text).trim();
+  if (t.startsWith('{') || t.startsWith('[')) return t;
+  // Drop a leading "audit" header line (from the CSV export)
+  const nl = t.indexOf('\n');
+  if (nl !== -1) {
+    const firstLine = t.slice(0, nl).trim().toLowerCase();
+    if (firstLine === 'audit' || firstLine === '"audit"') t = t.slice(nl + 1).trim();
+  }
+  // Unwrap a CSV-quoted field and de-double its quotes
+  if (t.startsWith('"') && t.endsWith('"')) {
+    t = t.slice(1, -1).replace(/""/g, '"');
+  }
+  return t.trim();
+}
+
+function handleRlsCsvImport(file) {
+  const status = $('rls-import-status');
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const json = extractAuditCell(reader.result || '');
+    const input = $('rls-input');
+    if (input) input.value = json;
+    if (status) status.textContent = `✓ ${file.name}`;
+    handleRlsClassify();
+  };
+  reader.onerror = () => { if (status) status.textContent = '✗ could not read file'; };
+  reader.readAsText(file);
+}
+
+// Cache of the last classification so copy buttons can pull text by reference
+// (inline onclick is blocked by the extension CSP).
+let _rlsPlan = [];
+let _rlsReportMd = '';
 
 function renderRlsFindings(findings, policyChecks) {
   const container = $('rls-findings');
@@ -764,10 +1049,96 @@ function renderRlsFindings(findings, policyChecks) {
     container.innerHTML = `<div class="empty-state ok">✅ No deep-RLS issues in ${policyChecks.length} table(s).</div>`;
     return;
   }
+
+  const s = summarizeRlsAudit(findings, policyChecks);
+  const plan = buildRemediationPlan(findings);
+  _rlsPlan = plan;
+  _rlsReportMd = renderRlsReportMarkdown(findings, policyChecks);
+
   const order = { catastrophic: 5, critical: 4, high: 3, medium: 2, low: 1, info: 0 };
-  const sorted = [...findings].sort((a, b) => (order[b.severity] || 0) - (order[a.severity] || 0));
-  const header = `<div class="rls-summary">${policyChecks.length} table(s) · ${findings.length} finding(s)</div>`;
-  const rows = sorted.map(f => `
+  const actionable = findings.filter(f => !f.managed).sort((a, b) => (order[b.severity] || 0) - (order[a.severity] || 0));
+  const managed = findings.filter(f => f.managed);
+
+  // ---- Summary header + severity chips ----
+  const sevChips = ['high', 'medium', 'low']
+    .filter(sev => s.bySeverity[sev])
+    .map(sev => `<span class="badge badge-${sev}">${s.bySeverity[sev]} ${sev}</span>`)
+    .join(' ');
+  const head = `
+    <div class="rls-summary">
+      <div class="rls-summary-line">
+        <strong>${s.tables}</strong> tables analyzed ·
+        <strong>${s.actionable}</strong> actionable ·
+        <span class="muted">${s.managedRaw} in Supabase-managed schemas (collapsed)</span>
+      </div>
+      <div class="rls-summary-chips">${sevChips}</div>
+    </div>`;
+
+  // ---- Remediation plan ----
+  const planHead = `
+    <div class="rls-plan-head">
+      <h4>Remediation plan <span class="muted">· ${plan.length} step${plan.length === 1 ? '' : 's'}</span></h4>
+      <button class="btn btn-ghost btn-sm" data-copy-report>📋 Copy full plan</button>
+    </div>`;
+  const planCards = plan.map((step, i) => {
+    const tablePreview = step.tables.length
+      ? `<details class="rls-tables"><summary>${step.tables.length} affected ${step.tables.length === 1 ? 'object' : 'objects'}</summary><div class="rls-tables-list">${step.tables.map(t => `<code>${esc(t)}</code>`).join(' ')}</div></details>`
+      : '';
+    const sqlBlock = step.sql
+      ? `<div class="rls-fix-block">
+           <div class="rls-fix-head"><span class="rls-fix-label">Consolidated migration</span><button class="btn btn-ghost btn-sm" data-copy-step="${i}" data-what="sql">📋 Copy SQL</button></div>
+           <pre class="rls-sql">${esc(step.sql)}</pre>
+         </div>`
+      : `<div class="hint">No automatic SQL — this needs a policy predicate. Use the prompt above.</div>`;
+    return `
+      <div class="rls-plan-step card sev-${severityClass(step.severity)}">
+        <div class="rls-plan-step-head">
+          <span class="badge badge-${step.severity}">${esc(step.ruleId)}</span>
+          <span class="rls-plan-step-title">${esc(step.label)}</span>
+          <span class="muted rls-plan-step-count">${step.count} item${step.count === 1 ? '' : 's'}</span>
+        </div>
+        ${tablePreview}
+        <div class="rls-prompt-block">
+          <div class="rls-fix-head"><span class="rls-fix-label">Prompt for Lovable</span><button class="btn btn-ghost btn-sm" data-copy-step="${i}" data-what="prompt">📋 Copy prompt</button></div>
+          <p class="rls-prompt">${esc(step.prompt)}</p>
+        </div>
+        ${sqlBlock}
+      </div>`;
+  }).join('');
+
+  // ---- Collapsible: all actionable findings (raw) ----
+  const rawRows = actionable.map(f => findingRowHtml(f)).join('');
+  const rawDetails = `
+    <details class="rls-raw">
+      <summary>Show all ${actionable.length} actionable finding${actionable.length === 1 ? '' : 's'}</summary>
+      <div class="rls-raw-list">${rawRows}</div>
+    </details>`;
+
+  // ---- Collapsible: managed-schema context ----
+  const managedDetails = managed.length ? `
+    <details class="rls-managed">
+      <summary>${managed.length} finding${managed.length === 1 ? '' : 's'} in Supabase-managed schemas (context only)</summary>
+      <div class="hint">These live in platform schemas (auth, storage, realtime, …) or are platform roles. You can't ALTER them from the SQL editor — Supabase controls them. Shown so the audit is complete.</div>
+      <div class="rls-raw-list">${managed.map(f => findingRowHtml(f)).join('')}</div>
+    </details>` : '';
+
+  container.innerHTML = head + planHead + planCards + rawDetails + managedDetails;
+
+  // ---- Wire copy buttons (CSP-safe: no inline handlers) ----
+  container.querySelectorAll('[data-copy-step]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const step = _rlsPlan[+btn.dataset.copyStep];
+      if (!step) return;
+      const text = btn.dataset.what === 'sql' ? step.sql : step.prompt;
+      copyText(text, btn, btn.textContent);
+    });
+  });
+  const reportBtn = container.querySelector('[data-copy-report]');
+  if (reportBtn) reportBtn.addEventListener('click', () => copyText(_rlsReportMd, reportBtn, reportBtn.textContent));
+}
+
+function findingRowHtml(f) {
+  return `
     <div class="finding-row">
       <span class="finding-sev sev-dot sev-${severityClass(f.severity)}"></span>
       <div class="finding-body">
@@ -775,8 +1146,17 @@ function renderRlsFindings(findings, policyChecks) {
         <div class="finding-evidence">${esc(f.evidence)}</div>
         ${f.remediationSql ? `<pre class="finding-fix">${esc(f.remediationSql)}</pre>` : ''}
       </div>
-    </div>`).join('');
-  container.innerHTML = header + rows;
+    </div>`;
+}
+
+function copyText(text, btn, orig) {
+  navigator.clipboard.writeText(String(text || '')).then(() => {
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }).catch(() => {
+    btn.textContent = '✗ blocked';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
 }
 
 function flash(id, text) {

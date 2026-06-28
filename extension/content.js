@@ -1,5 +1,5 @@
 // ============================================================
-// NXLV Shield — Content Script (passive sensor bridge + collectors)
+// NXLV Audit — Content Script (passive sensor bridge + collectors)
 // ============================================================
 // Runs in the isolated content-script world. Responsibilities:
 //   • inject the page-context interceptor (C1)
@@ -130,8 +130,9 @@ async function scanString(text, source) {
       const raw = m[0];
       if (!raw || raw.length < 8) continue;
       hits++;
-      out.push({ patternId: p.id, kind: p.kind, severity: p.severity, label: p.label, masked: maskValue(raw), hash: await sha256_16(raw), source });
-      re.lastIndex = m.index + 1;
+      out.push({ patternId: p.id, kind: p.kind, severity: p.severity, label: p.label, masked: maskValue(raw), hash: await sha256_16(p.id === 'pii_email' ? raw.toLowerCase() : raw), source });
+      // Advance past the whole match (match.index+1 would re-match overlapping substrings).
+      re.lastIndex = m.index + (raw.length || 1);
     }
   }
   return out;
@@ -145,6 +146,30 @@ function scheduleStateScan() {
   if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(run, 800);
   else window.addEventListener('DOMContentLoaded', () => setTimeout(run, 800), { once: true });
 }
+
+// ---- SPA navigation: reset state scan when workspace changes ----
+// lovable.dev uses client-side routing; popstate fires on browser back/forward,
+// but pushState/replaceState don't fire popstate natively — wrap them too.
+(function patchHistory() {
+  let lastHref = location.href;
+  function onNavigation() {
+    if (location.href === lastHref) return;
+    lastHref = location.href;
+    stateScanned = false;            // allow a fresh state scan on the new page
+    if (passiveEnabled) scheduleStateScan();
+    // Notify background so it can update lpa_active_workspace
+    safeSendMessage({ type: 'SPA_NAVIGATION', url: location.href, host: location.host });
+  }
+  window.addEventListener('popstate', onNavigation);
+  for (const method of ['pushState', 'replaceState']) {
+    const orig = history[method];
+    history[method] = function (...args) {
+      const result = orig.apply(this, args);
+      onNavigation();
+      return result;
+    };
+  }
+})();
 
 // ---- C2: browser-state scan ----
 async function runStateScan() {

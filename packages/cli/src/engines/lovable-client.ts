@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Lovable API Client (CLI version, Node.js)
+// @nxlv/audit — Lovable API Client (CLI version, Node.js)
 // ============================================================
 // Invariants:
 //   - GET only. No POST/PUT/DELETE.
@@ -143,13 +143,50 @@ export class LovableAPIClient {
 
   // ---- Public API ----
 
-  async validateToken(): Promise<{ valid: boolean; userId?: string }> {
-    const result = await this.get<{ id?: string; user_id?: string }>('/user/projects');
-    return { valid: result.status === 200, userId: result.data?.id };
+  // Decode JWT payload without signature verification (safe: read-only metadata).
+  static decodeTokenPayload(token: string): Record<string, unknown> | null {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+      const payload = Buffer.from(parts[1], 'base64url').toString('utf-8');
+      return JSON.parse(payload) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+
+  // Try GET /projects/{id} to fetch real project metadata (project-scoped tokens).
+  private async getProjectById(projectId: string): Promise<LovableProject | null> {
+    const result = await this.get<LovableProject>(`/projects/${projectId}`);
+    return result.status === 200 && result.data ? result.data : null;
+  }
+
+  async validateToken(): Promise<{ valid: boolean; userId?: string; projectScoped?: boolean }> {
+    // Try user-level endpoints (API surface may shift over time).
+    for (const path of ['/user/projects', '/user/projects/shared']) {
+      const result = await this.get<{ id?: string; user_id?: string }>(path);
+      if (result.status === 200) return { valid: true, userId: result.data?.id };
+    }
+
+    // Fall back: project-scoped token (e.g. lovable-auth cookie).
+    const payload = LovableAPIClient.decodeTokenPayload(this.token);
+    if (payload?.access_type === 'project' && typeof payload.project_id === 'string') {
+      const probe = await this.get<unknown>(`/projects/${payload.project_id}/git/files`);
+      if (probe.status === 200) {
+        return {
+          valid: true,
+          projectScoped: true,
+          userId: typeof payload.user_id === 'string' ? payload.user_id : undefined,
+        };
+      }
+    }
+
+    return { valid: false };
   }
 
   async listProjects(): Promise<LovableProject[]> {
-    const endpoints = ['/user/projects', '/projects'];
+    // User-scoped token: try standard endpoints (order = most-likely-current first).
+    const endpoints = ['/user/projects', '/user/projects/shared', '/projects'];
     for (const endpoint of endpoints) {
       const result = await this.get<LovableProject[] | { projects: LovableProject[] }>(endpoint);
       if (result.data) {
@@ -157,6 +194,25 @@ export class LovableAPIClient {
         if ('projects' in result.data) return result.data.projects;
       }
     }
+
+    // Project-scoped token fallback: extract project_id from JWT.
+    const payload = LovableAPIClient.decodeTokenPayload(this.token);
+    if (payload?.access_type === 'project' && typeof payload.project_id === 'string') {
+      const projectId = payload.project_id;
+      // Try to get real project metadata.
+      const detail = await this.getProjectById(projectId);
+      if (detail) return [detail];
+      // Synthetic fallback using JWT claims.
+      const iat = typeof payload.iat === 'number' ? payload.iat : Math.floor(Date.now() / 1000);
+      const issuedAt = new Date(iat * 1000).toISOString();
+      return [{
+        id: projectId,
+        name: projectId,
+        created_at: issuedAt,
+        updated_at: issuedAt,
+      }];
+    }
+
     return [];
   }
 

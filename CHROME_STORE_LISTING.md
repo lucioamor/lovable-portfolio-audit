@@ -1,4 +1,4 @@
-# Chrome Web Store Listing — NXLV Shield (Lovable Portfolio Audit)
+# Chrome Web Store Listing — NXLV Audit (Lovable Portfolio Audit)
 
 Everything needed to submit the extension. A human must create the Chrome Web Store **developer account (one-time US$5 fee)** and perform the upload; this document provides the copy, the permission justifications, the packaging command, and the submission checklist.
 
@@ -51,12 +51,12 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 ## 3. Store metadata
 
 - **Category:** Developer Tools
-- **Suggested name:** NXLV Shield — Lovable Portfolio Audit
+- **Suggested name:** NXLV Audit — Lovable Portfolio Audit
 - **Visibility on first submission:** **Unlisted / private** (see Section 8) — do **not** publish publicly until tested.
 
 ### Short summary (≤132 chars)
 
-> Self-audit your Lovable.dev projects for BOLA/IDOR, exposed secrets, and Supabase RLS gaps. Local-first, read-only, private.
+> Self-audit your Lovable.dev projects for BOLA/IDOR, exposed secrets, and Supabase RLS gaps. Local-first, read-only, private. (NXLV Audit)
 
 ---
 
@@ -64,7 +64,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 
 ### English
 
-> **NXLV Shield audits your own Lovable.dev projects for security exposure — entirely on your device.**
+> **NXLV Audit audits your own Lovable.dev projects for security exposure — entirely on your device.**
 >
 > Log into Lovable, open the side panel, and scan the projects **you own** for:
 > - **BOLA / IDOR exposure** — endpoints that may serve your project files or chat history to other accounts.
@@ -73,11 +73,11 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 >
 > **Privacy by design.** Your session token never leaves the browser and is stored in an AES-GCM encrypted vault. Raw response bodies are never persisted or sent — only masked samples and a short hash are kept. Every Lovable request is read-only (GET). There is no telemetry and no NXLV server. Safe mode is on by default.
 >
-> Built for Lovable builders who want to verify their own security posture before shipping.
+> Built for Lovable builders who want to verify their own security posture before shipping using NXLV Audit.
 
 ### Português
 
-> **O NXLV Shield audita os seus próprios projetos do Lovable.dev em busca de exposição de segurança — inteiramente no seu dispositivo.**
+> **O NXLV Audit audita os seus próprios projetos do Lovable.dev em busca de exposição de segurança — inteiramente no seu dispositivo.**
 >
 > Faça login no Lovable, abra o painel lateral e analise os projetos que **você possui** em busca de:
 > - **Exposição BOLA / IDOR** — endpoints que podem servir os arquivos ou o histórico de chat do seu projeto a outras contas.

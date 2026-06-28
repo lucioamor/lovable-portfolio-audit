@@ -3,7 +3,7 @@
 // Integrates all 10 skills for production-grade security.
 // ============================================================
 
-import { getSessionToken, listProjects, PROBE_ENDPOINTS, getProjectFiles, getFileContent, getProjectMessages } from './api-client.js';
+import { getSessionToken, listProjects, PROBE_ENDPOINTS, getProjectFiles, getFileContent, getProjectMessages, recordActiveProbe } from './api-client.js';
 import { isSensitiveFile } from './data-patterns.js';
 import { createLogger } from './skills/structured-logger.js';
 import { hashSecret } from './skills/secret-hasher.js';
@@ -30,13 +30,19 @@ async function probeWithRetry(doProbe, ctx) {
   let result;
   for (let attempt = 1; attempt <= PROBE_MAX_ATTEMPTS; attempt++) {
     result = await doProbe();
-    if (result.signature !== 'error') {
+    // Retry ONLY genuinely transient failures (network/timeout/429/5xx). A
+    // deterministic outcome — success, BOLA signature, or a drift/not_found 4xx
+    // — is final: retrying it can't change the answer, it only triples API load
+    // and floods the diagnostic ring. The drift status is preserved so the
+    // self-test still surfaces it under WHERE IT ERRS.
+    if (!result.retryable) {
       return Object.freeze({ ...result, attempt_number: attempt });
     }
     if (attempt < PROBE_MAX_ATTEMPTS) {
       const nextDelayMs = PROBE_BACKOFF_MS * attempt; // linear backoff
       logger.warn('probe transient error, retrying', {
-        ...ctx, attempt_number: attempt, signature: result.signature, nextDelayMs,
+        ...ctx, attempt_number: attempt, signature: result.signature,
+        httpStatus: result.httpStatus ?? null, nextDelayMs,
       });
       await new Promise(r => setTimeout(r, nextDelayMs));
     }
@@ -78,7 +84,9 @@ async function scanText(text, sourcePath) {
         lineNumber,
       });
 
-      freshRegex.lastIndex = match.index + 1;
+      // Advance past the whole match; match.index+1 re-matches overlapping substrings
+      // (one email → many fragment findings).
+      freshRegex.lastIndex = match.index + (match[0].length || 1);
     }
   }
   return findings;
@@ -215,10 +223,13 @@ async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
     scanDurationMs: 0,
     bolaFilesSignature: 'unknown',
     bolaChatSignature: 'unknown',
+    bolaFilesStatus: null,
+    bolaChatStatus: null,
     supabaseDetected: false,
     supabaseUrl: null,
     findings,
     filesScanned: 0,
+    filesReadable: false,
     chatMessagesScanned: 0,
   };
 
@@ -239,24 +250,34 @@ async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
       probeResult = await probeWithRetry(() => probeSingle(endpoint, project.id, ownerToken), { endpoint, projectId: project.id, label: ep.label });
     }
 
+    // Feed the scanner's own probe into the observed-endpoint registry so the
+    // diagnostic captures per-project paths (git/files, messages…) even when
+    // the user never opened a project in the Lovable UI.
+    recordActiveProbe(ep.path(project.id), 'GET', probeResult.httpStatus ?? probeResult.owner?.status ?? 0);
+
     if (ep.label === 'GitFilesResponse') {
       result.bolaFilesSignature = probeResult.signature;
+      result.bolaFilesStatus = probeResult.httpStatus ?? probeResult.owner?.status ?? null;
       if (['vulnerable', 'owner_only'].includes(probeResult.signature)) {
         builder.add({ kind: 'bola_files', points: SIGNAL_WEIGHTS.bola_files, evidence: { endpoint } });
       }
     } else if (ep.label === 'GetProjectMessagesOutputBody') {
       result.bolaChatSignature = probeResult.signature;
+      result.bolaChatStatus = probeResult.httpStatus ?? probeResult.owner?.status ?? null;
       if (['vulnerable', 'owner_only'].includes(probeResult.signature)) {
         builder.add({ kind: 'bola_chat', points: SIGNAL_WEIGHTS.bola_chat, evidence: { endpoint } });
       }
     }
   }
 
-  const ownerHasFiles = ['vulnerable', 'owner_only'].includes(result.bolaFilesSignature);
-  const ownerHasChat  = ['vulnerable', 'owner_only'].includes(result.bolaChatSignature);
-
   // ---- File content scan ----
-  if (config.includeFiles && ownerHasFiles) {
+  // Gate on consent + config only — NOT on the BOLA probe signature. The probe
+  // endpoint (/projects/:id/git/files) can drift (observed 422) and yield a
+  // non-owner signature even when the resilient getProjectFiles() can still read
+  // the listing via a ref-qualified fallback. Tying the scan to the probe
+  // signature is exactly what made every project come back files=error with an
+  // identical score; let the actual fetch decide what's readable.
+  if (config.includeFiles) {
     const hasDeepConsent = await hasConsent('L2_deep_inspect', `scan_${result.projectId}`);
     if (config.deepInspect && !hasDeepConsent) {
       await grantConsent('L2_deep_inspect', `scan_${result.projectId}`);
@@ -266,6 +287,7 @@ async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
       try {
         const files = await getProjectFiles(project.id);
         if (Array.isArray(files)) {
+          result.filesReadable = true;
           // Check sensitive paths
           const pathFindings = await checkSensitivePaths(files);
           for (const f of pathFindings) {
@@ -304,7 +326,9 @@ async function scanProject(project, config, ownerToken, auditToken, scanDelay) {
   }
 
   // ---- Chat scan ----
-  if (config.includeChat && ownerHasChat) {
+  // Same rationale as files: gate on config only and let the fetch decide, so a
+  // future drift on /messages can't silently zero out the chat scan.
+  if (config.includeChat) {
     try {
       const messages = await getProjectMessages(project.id);
       if (Array.isArray(messages)) {

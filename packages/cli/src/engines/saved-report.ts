@@ -1,7 +1,7 @@
 // ============================================================
-// @nxlv/shield — Saved-report loader (E2: report + fix-prompt)
+// @nxlv/audit — Saved-report loader (E2: report + fix-prompt)
 // ============================================================
-// Parses a previously written `nxlv-shield/v1` JSON report (the shape produced
+// Parses a previously written `nxlv-audit/v1` JSON report (the shape produced
 // by toJSON) so reports can be regenerated and AI fix prompts extracted WITHOUT
 // re-scanning. Pure functions; the CLI layer handles file IO and exit codes.
 // ============================================================
@@ -31,8 +31,8 @@ export function parseSavedReport(raw: string): SavedReport {
     throw new Error('Report file is not a JSON object.');
   }
   const obj = data as Record<string, unknown>;
-  if (typeof obj.schema !== 'string' || !obj.schema.startsWith('nxlv-shield/')) {
-    throw new Error('Unrecognized report: missing "nxlv-shield/*" schema. Pass a report produced by `scan --format json`.');
+  if (typeof obj.schema !== 'string' || !obj.schema.startsWith('nxlv-audit/')) {
+    throw new Error('Unrecognized report: missing "nxlv-audit/*" schema. Pass a report produced by `scan --format json`.');
   }
   if (!Array.isArray(obj.results)) {
     throw new Error('Report is missing a "results" array.');

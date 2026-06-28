@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NXLV Shield — Lovable Portfolio Audit</title>
+  <title>NXLV Audit — Lovable Portfolio Audit</title>
   <link rel="stylesheet" href="sidepanel.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
     <div class="modal-header">
       <span class="shield-icon">🛡️</span>
       <h2>Before you begin</h2>
-      <p class="subtitle">NXLV Shield v2 — Lovable Portfolio Audit</p>
+      <p class="subtitle">NXLV Audit v2 — Lovable Portfolio Audit</p>
     </div>
     <div class="modal-body scrollable" id="legal-scroll-area">
       <h3>What this scanner does:</h3>
@@ -89,7 +89,7 @@
     <div class="header-brand">
       <span class="brand-icon">🛡️</span>
       <div>
-        <span class="brand-name">NXLV Shield</span>
+        <span class="brand-name">NXLV Audit</span>
         <span class="brand-sub">Lovable Portfolio Audit</span>
       </div>
     </div>
@@ -112,6 +112,23 @@
       <div id="session-badge" class="badge badge-neutral">Checking...</div>
       <div id="vault-badge" class="badge badge-neutral">Vault —</div>
     </div>
+
+    <!-- First-run coach (shown once) -->
+    <div id="onboard-card" class="onboard-card hidden">
+      <div class="onboard-head">
+        <strong>👋 Welcome — here's the flow</strong>
+        <button id="onboard-dismiss" class="icon-btn" title="Dismiss">✕</button>
+      </div>
+      <ol class="onboard-steps">
+        <li><strong>Log in to lovable.dev</strong> in this browser (or save a token in Settings → Vault). The scan uses <em>your own</em> session — read-only, nothing leaves your browser.</li>
+        <li><strong>Run a scan.</strong> It lists your projects and probes each for BOLA/IDOR, exposed secrets, and Supabase RLS gaps.</li>
+        <li><strong>Read Results.</strong> Worst issues first, each with evidence and a fix. Export an evidence pack anytime.</li>
+      </ol>
+      <p class="hint">Stuck? Settings → 🩺 Diagnostics builds a report you can hand off for repair.</p>
+    </div>
+
+    <!-- Dynamic "what to do now" banner -->
+    <div id="next-step" class="next-step hidden"></div>
 
     <div class="scan-card">
       <div class="scan-options">
@@ -179,8 +196,13 @@
         <button id="rls-copy-sql" class="btn btn-ghost btn-sm">📋 Copy SQL</button>
       </div>
       <pre id="rls-sql" class="rls-sql hidden"></pre>
-      <label class="rls-paste-label">② Paste the <code>audit</code> cell value:
-        <textarea id="rls-input" class="rls-input" rows="5" placeholder='{"policies":[...],"tables":[...],"grants":[...],"roles":[...]}'></textarea>
+      <div class="scan-actions">
+        <button id="rls-import-csv" class="btn btn-ghost btn-sm">📁 Import CSV</button>
+        <span id="rls-import-status" class="hint-inline"></span>
+        <input type="file" id="rls-csv-file" accept=".csv,text/csv" class="hidden">
+      </div>
+      <label class="rls-paste-label">② Import the exported CSV above, or paste the <code>audit</code> cell value:
+        <textarea id="rls-input" class="rls-input" rows="5" placeholder='Import the .csv, or paste {"policies":[...],"tables":[...],"grants":[...],"roles":[...]}'></textarea>
       </label>
       <div class="scan-actions">
         <button id="rls-classify" class="btn btn-primary btn-full">③ Classify</button>
@@ -239,12 +261,34 @@
 
     <section class="settings-section">
       <h3>📡 Passive sensor <span class="badge-info">Phase 2</span></h3>
-      <p class="hint">Collects masked findings while you browse Lovable — no extra requests, raw bodies never leave the page. OFF by default (safe mode). Live view in DevTools → “NXLV Shield”.</p>
+      <p class=”hint”>Collects masked findings while you browse Lovable — no extra requests, raw bodies never leave the page. OFF by default (safe mode). Live view in DevTools → “NXLV Audit”.</p>
       <label class="toggle-row"><input type="checkbox" id="setting-passive"><span>Enable passive sensor</span></label>
       <div class="setting-row">
         <span class="hint" id="passive-count">0 findings · 0 endpoints</span>
-        <button id="passive-clear-btn" class="btn btn-ghost btn-sm">Clear passive data</button>
+        <div>
+          <button id="passive-details-btn" class="btn btn-ghost btn-sm">Show endpoints</button>
+          <button id="passive-clear-btn" class="btn btn-ghost btn-sm">Clear passive data</button>
+        </div>
       </div>
+      <pre id="passive-details" class="rls-sql hidden"></pre>
+
+      <label class="rls-paste-label">Ignore these emails (one per line) — e.g. your own account addresses. These are never public; stored as a hash only:
+        <textarea id="setting-email-ignore" class="rls-input" rows="2" placeholder="you@example.com&#10;team@example.com"></textarea>
+      </label>
+      <div class="setting-row">
+        <span class="hint" id="email-ignore-count">0 email(s) ignored</span>
+        <button id="email-ignore-save" class="btn btn-ghost btn-sm">Save ignore list</button>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <h3>🩺 Diagnostics</h3>
+      <p class="hint">Exports a single redacted <code>.txt</code> snapshot — live endpoint status (diagnoses scan/405 errors), the real observed API surface, recent error logs, and extension state. Paste it into a new Claude Code window to start a repair session. No secrets are included.</p>
+      <div class="scan-actions">
+        <button id="diag-build-btn" class="btn btn-primary btn-sm">🩺 Generate report (.txt)</button>
+        <button id="diag-clear-logs-btn" class="btn btn-ghost btn-sm">Clear logs</button>
+      </div>
+      <p id="diag-status" class="hint hidden"></p>
     </section>
 
     <section class="settings-section">
@@ -258,7 +302,7 @@
 
     <section class="settings-section">
       <h3>ℹ️ About</h3>
-      <p class="hint">NXLV Shield v2.0.0 — local-first, read-only, privacy-preserving.</p>
+      <p class="hint">NXLV Audit v2.0.0 — local-first, read-only, privacy-preserving.</p>
       <p class="hint"><a href="https://github.com/nxlv/lovable-portfolio-audit" target="_blank">github.com/nxlv/lovable-portfolio-audit</a></p>
     </section>
   </div>

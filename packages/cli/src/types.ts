@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Core Types (expanded from src/lib/types.ts)
+// @nxlv/audit — Core Types (expanded from src/lib/types.ts)
 // ============================================================
 
 // ---- Rule DSL Types ----
@@ -69,6 +69,13 @@ export interface Finding {
   aiPrompt: string;               // copy-paste for Lovable chat
   remediationSql?: string;        // for Supabase findings
   sarifLocation?: SARIFLocation;
+  // ---- Deep-RLS consolidation metadata (optional; set by rls-checklist) ----
+  managed?: boolean;              // lives in a Supabase-managed schema/role — context, not actionable
+  schema?: string;                // owning schema (e.g. "public", "auth")
+  tableName?: string;             // fully-qualified table, e.g. "public.profiles"
+  grantee?: string;               // for DB-008: "anon" | "public"
+  privileges?: string[];          // for DB-008: collapsed privilege list
+  partitionCount?: number;        // for collapsed rolling date partitions
 }
 
 export interface SARIFLocation {

@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Bundle / Runtime Scanner (P8/P9 · WS-4)
+// @nxlv/audit — Bundle / Runtime Scanner (P8/P9 · WS-4)
 // ============================================================
 // Read-only GETs of a deployed Lovable app to detect, in the shipped bundle:
 //   • inline source maps (//# sourceMappingURL=data:...) — source exposed even
@@ -32,7 +32,7 @@ export interface BundleScanResult {
   supabaseKeyIsServiceRole?: boolean;
 }
 
-const UA = 'nxlv-shield/0.1.0 (security-audit; read-only)';
+const UA = 'nxlv-audit/0.1.0 (security-audit; read-only)';
 
 async function getText(url: string, timeoutMs = 10000): Promise<{ ok: boolean; text: string; origin: string }> {
   try {

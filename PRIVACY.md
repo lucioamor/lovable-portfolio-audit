@@ -1,9 +1,9 @@
-# Privacy Policy — NXLV Shield (Lovable Portfolio Audit)
+# Privacy Policy — NXLV Audit (Lovable Portfolio Audit)
 
 **Last updated:** 2026-06-26
-**Applies to:** the "NXLV Shield — Lovable Portfolio Audit" Chrome extension and the `nxlv-shield` CLI in this repository.
+**Applies to:** the "NXLV Audit — Lovable Portfolio Audit" Chrome extension and the `nxlv-audit` CLI in this repository.
 
-NXLV Shield is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (BOLA/IDOR, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
+NXLV Audit is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (BOLA/IDOR, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
 
 The short version: **your data stays on your device.** There is no NXLV server that receives your tokens, your project contents, or any analytics.
 

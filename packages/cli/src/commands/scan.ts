@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Scan Command
+// @nxlv/audit — Scan Command
 // ============================================================
 // Main orchestrator: lists projects → probes BOLA → scans secrets
 // → tests RLS → generates findings → scores → reports.
@@ -478,9 +478,16 @@ export async function runScan(
   const client = new LovableAPIClient(config.lovableToken, config.scanDelay, config.verbose);
 
   onProgress?.('🔍 Validating Lovable token...');
-  const { valid } = await client.validateToken();
+  const { valid, projectScoped } = await client.validateToken();
   if (!valid) {
-    throw new Error('Invalid or expired Lovable token. Get a fresh token from browser DevTools → Network → api.lovable.dev → Authorization: Bearer ...');
+    throw new Error(
+      'Invalid or expired Lovable token.\n' +
+      'User-scoped token: DevTools → Network → api.lovable.dev → Authorization: Bearer ...\n' +
+      'Project-scoped token: lovable.dev → DevTools → Application → Cookies → lovable-auth'
+    );
+  }
+  if (projectScoped) {
+    onProgress?.('ℹ️  Project-scoped token detected — scanning single project from JWT.');
   }
 
   onProgress?.('📋 Fetching project list...');

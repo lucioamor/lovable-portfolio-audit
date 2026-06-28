@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Reporters (Console + JSON + SARIF + Markdown)
+// @nxlv/audit — Reporters (Console + JSON + SARIF + Markdown)
 // ============================================================
 
 import { createHash } from 'crypto';

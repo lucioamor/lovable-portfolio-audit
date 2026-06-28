@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Risk Scorer (expanded with rationale + LOV levels)
+// @nxlv/audit — Risk Scorer (expanded with rationale + LOV levels)
 // ============================================================
 
 import type { Finding, ProjectScanResult, RationaleEntry, LovableLevel, Severity } from '../types.js';

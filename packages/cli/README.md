@@ -1,11 +1,11 @@
-# 🛡️ NXLV Shield — The Lovable Production-Readiness Standard
+# 🛡️ NXLV Audit — The Lovable Production-Readiness Standard
 
-[![npm version](https://img.shields.io/npm/v/@nxlv/shield.svg?style=flat-square)](https://www.npmjs.com/package/@nxlv/shield)
+[![npm version](https://img.shields.io/npm/v/@nxlv/audit.svg?style=flat-square)](https://www.npmjs.com/package/@nxlv/audit)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Security: Read-Only](https://img.shields.io/badge/Security-Read--Only-green.svg?style=flat-square)](#security-invariants)
 
 > **The independent security audit layer for Lovable apps.**
-> Lovable's built-in scanner checks your code. NXLV Shield checks if it actually *works in production*.
+> Lovable's built-in scanner checks your code. NXLV Audit checks if it actually *works in production*.
 
 ---
 
@@ -13,16 +13,16 @@
 
 ```bash
 # Scan your Lovable projects (requires your session token)
-npx @nxlv/shield scan --token <your-lovable-bearer-token>
+npx @nxlv/audit scan --token <your-lovable-bearer-token>
 
 # Scan with Supabase RLS probing
-npx @nxlv/shield scan --token <token> --supabase-url https://xyz.supabase.co --supabase-key eyJ...
+npx @nxlv/audit scan --token <token> --supabase-url https://xyz.supabase.co --supabase-key eyJ...
 
 # Scan a deployed app URL (headers + source maps)
-npx @nxlv/shield scan --token <token> --url https://myapp.lovable.app
+npx @nxlv/audit scan --token <token> --url https://myapp.lovable.app
 
 # CI/CD pipeline (exit code 1 on critical findings, SARIF output)
-npx @nxlv/shield ci --output nxlv-shield.sarif
+npx @nxlv/audit ci --output nxlv-audit.sarif
 ```
 
 ### How to get your Lovable token:
@@ -37,7 +37,7 @@ npx @nxlv/shield ci --output nxlv-shield.sarif
 
 **Broken Object Level Authorization (BOLA / IDOR)** is the class of bug where a backend returns an object without checking that the caller owns it. Lovable projects created before November 2025 are the population most at risk of having their project files and AI chat history readable without an ownership check — which can expose hardcoded API keys, database schemas, and credentials shared during development.
 
-**NXLV Shield's BOLA check** (`LOV-001`) probes — read-only, against your own account:
+**NXLV Audit's BOLA check** (`LOV-001`) probes — read-only, against your own account:
 - `GET /projects/{id}/git/files` → reveals if your file tree is exposed
 - `GET /projects/{id}/messages` → reveals if your AI chat history is exposed
 

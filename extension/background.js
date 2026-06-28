@@ -10,8 +10,10 @@ import { hasConsent, grantConsent, LEGAL_VERSION } from './lib/skills/consent-ga
 import { loadCatalog } from './lib/skills/pattern-catalog.js';
 import { pruneRuns, listRuns } from './lib/skills/scan-history.js';
 import { isKnownEndpoint } from './lib/passive-endpoints.js';
+import { installPersistentSink, buildReport, clearLogs } from './lib/skills/diagnostics.js';
 
 const logger = createLogger({ module: 'background' });
+installPersistentSink('background');
 
 // ---- Keep-alive for long scans ----
 let keepAliveInterval = null;
@@ -69,10 +71,14 @@ async function storePassiveFindings(findings, ctx) {
   // Consent gate: only persist when the user has accepted the legal terms.
   if (!(await hasConsent('L0_legal'))) return;
 
-  const { lpa_passive_findings = [] } = await chrome.storage.local.get('lpa_passive_findings');
+  const { lpa_passive_findings = [], lpa_email_ignore = [] } =
+    await chrome.storage.local.get(['lpa_passive_findings', 'lpa_email_ignore']);
+  const ignoredEmails = new Set(lpa_email_ignore);
   const seen = new Set(lpa_passive_findings.map(f => `${f.hash}:${f.patternId}:${f.source}`));
   let added = 0;
   for (const f of findings) {
+    // Suppress allowlisted email addresses (e.g. the account owner's own emails).
+    if (f.patternId === 'pii_email' && f.hash && ignoredEmails.has(f.hash)) continue;
     const key = `${f.hash || ''}:${f.patternId}:${f.source || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -106,8 +112,18 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     case 'LOVABLE_AUTH_TOKEN': {
       if (msg.token) {
         const tokenVal = msg.token.replace(/^Bearer\s+/i, '');
-        chrome.storage.local.set({ lss_manual_token: tokenVal });
-        logger.info('auto-captured token from page context');
+        // The page re-emits its bearer on nearly every fetch — capturing is
+        // cheap but LOGGING each one drowns the 300-entry diagnostic ring in
+        // identical "auto-captured" lines, evicting the errors the ring exists
+        // to preserve. Only persist + log when the token actually changes
+        // (first capture or a real rotation), which is the only event worth
+        // diagnosing.
+        chrome.storage.local.get('lss_manual_token').then(({ lss_manual_token }) => {
+          if (lss_manual_token === tokenVal) return; // unchanged — stay silent
+          const rotated = !!lss_manual_token;
+          chrome.storage.local.set({ lss_manual_token: tokenVal });
+          logger.info(rotated ? 'session token rotated (captured from page)' : 'auto-captured token from page context');
+        }).catch(() => {});
       }
       sendResponse({ received: true });
       return true;
@@ -271,12 +287,71 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       );
       return true;
     }
+    case 'SPA_NAVIGATION': {
+      // Content script detected a client-side route change (pushState/replaceState/popstate).
+      // Extract workspace ID from the new URL and update lpa_active_workspace.
+      if (msg.url) {
+        const m = String(msg.url).match(/\/workspaces\/([A-Za-z0-9_-]{4,})/);
+        if (m) {
+          const workspaceId = m[1];
+          chrome.storage.local.get('lpa_active_workspace', ({ lpa_active_workspace }) => {
+            if (lpa_active_workspace?.id === workspaceId) return;
+            chrome.storage.local.set({
+              lpa_active_workspace: { id: workspaceId, url: msg.url, updatedAt: new Date().toISOString() },
+            });
+            logger.info('workspace changed (SPA)', { workspaceId });
+            chrome.runtime.sendMessage({ type: 'WORKSPACE_CHANGED', workspaceId }).catch(() => {});
+          });
+        }
+      }
+      sendResponse({ ok: true });
+      return true;
+    }
+
     case 'PASSIVE_CLEAR': {
       chrome.storage.local.remove(['lpa_passive_findings', 'lpa_observed_endpoints', 'lpa_endpoint_candidates', 'lpa_passive_routes']);
       sendResponse({ cleared: true });
       return true;
     }
+
+    // ---- Diagnostics (repair-session export) ----
+    case 'DIAGNOSTICS_BUILD': {
+      buildReport()
+        .then(text => sendResponse({ ok: true, text }))
+        .catch(err => {
+          logger.error('diagnostics build failed', err);
+          sendResponse({ ok: false, error: err.message });
+        });
+      return true;
+    }
+    case 'DIAGNOSTICS_CLEAR_LOGS': {
+      clearLogs().then(() => sendResponse({ cleared: true }));
+      return true;
+    }
   }
+});
+
+// ---- SPA workspace navigation detection ----
+// lovable.dev is a SPA — URL changes don't reload the content script.
+// We watch tab URL updates here to track the active workspace ID.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!changeInfo.url) return;
+  if (!changeInfo.url.includes('lovable.dev')) return;
+
+  const m = changeInfo.url.match(/\/workspaces\/([A-Za-z0-9_-]{4,})/);
+  if (!m) return;
+
+  const workspaceId = m[1];
+  chrome.storage.local.get('lpa_active_workspace', ({ lpa_active_workspace }) => {
+    // Only update (and notify) if the workspace actually changed.
+    if (lpa_active_workspace?.id === workspaceId) return;
+    chrome.storage.local.set({
+      lpa_active_workspace: { id: workspaceId, url: changeInfo.url, updatedAt: new Date().toISOString() },
+    });
+    logger.info('workspace navigation detected', { workspaceId });
+    // Notify side panel so it can prompt the user to re-scan.
+    chrome.runtime.sendMessage({ type: 'WORKSPACE_CHANGED', workspaceId }).catch(() => {});
+  });
 });
 
 // ---- Alarms ----

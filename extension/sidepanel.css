@@ -1462,6 +1462,24 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:foc
 }
 .probe-row code { background: var(--bg-secondary); padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono); }
 
+/* Always-visible probe summary on the card (no accordion needed) */
+.probe-row-visible {
+  align-items: center;
+  padding: 0 var(--space-md) var(--space-sm);
+  margin-bottom: 0;
+}
+.probe-pill {
+  padding: 1px 7px; border-radius: var(--radius-full);
+  font-size: 0.72rem; font-weight: 600;
+  border: 1px solid var(--border-subtle); white-space: nowrap;
+}
+.probe-pill.probe-bad     { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.probe-pill.probe-warn    { background: rgba(255, 140, 0, 0.1); color: var(--color-high); border-color: rgba(255, 140, 0, 0.25); }
+.probe-pill.probe-ok      { background: var(--color-clean-bg); color: var(--color-clean); border-color: var(--color-clean-border); }
+.probe-pill.probe-err     { background: var(--color-critical-bg); color: var(--color-critical); border-color: var(--color-critical-border); }
+.probe-pill.probe-neutral { background: var(--bg-secondary); color: var(--text-secondary); }
+.probe-findings { font-size: 0.72rem; margin-left: auto; }
+
 /* ---- Finding rows ---- */
 .finding-row {
   display: flex; align-items: center; gap: var(--space-sm);
@@ -1489,13 +1507,26 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:foc
 .history-row {
   background: var(--bg-card); border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm); padding: var(--space-sm) var(--space-md);
-  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
 }
+.history-row:hover { background: var(--bg-card-hover); }
+.history-row-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
 .history-run-info { display: flex; gap: var(--space-sm); align-items: center; font-size: 0.82rem; }
 .history-idx     { color: var(--text-muted); font-size: 0.72rem; }
 .history-date    { font-weight: 600; }
 .history-projects { color: var(--text-secondary); }
-.history-counts { display: flex; gap: var(--space-sm); align-items: center; font-size: 0.8rem; }
+.history-counts { display: flex; gap: var(--space-sm); align-items: center; font-size: 0.8rem; flex-wrap: wrap; }
+.sev-chip { display: inline-flex; align-items: center; gap: 3px; }
+
+/* Per-run expandable detail */
+.history-detail { margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--border-subtle); }
+.history-detail-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px var(--space-md);
+  font-size: 0.76rem; color: var(--text-secondary); margin-bottom: var(--space-sm);
+}
+.history-worst-label { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.history-proj-row { display: flex; align-items: center; gap: var(--space-sm); font-size: 0.78rem; padding: 2px 0; }
+.history-proj-id { font-family: var(--font-mono); }
 
 /* ---- Delta view ---- */
 .delta-view { margin-top: var(--space-md); }
@@ -1557,4 +1588,68 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:foc
   border-radius: var(--radius-sm, 4px); padding: 6px 8px; font-size: 0.68rem;
   white-space: pre-wrap; word-break: break-word;
 }
+
+/* ---- RLS Deep — consolidated remediation plan (v2) ---- */
+.rls-summary { display: flex; flex-direction: column; gap: 6px; padding: var(--space-sm, 8px) 0; }
+.rls-summary-line { font-size: 0.82rem; color: var(--text-secondary); }
+.rls-summary-line strong { color: var(--text-primary); }
+.rls-summary-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rls-plan-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin: var(--space-md, 12px) 0 var(--space-sm); }
+.rls-plan-head h4 { font-size: 0.86rem; font-weight: 700; }
+
+.rls-plan-step { padding: var(--space-sm, 10px) var(--space-md, 12px); margin-bottom: var(--space-sm); border-left: 3px solid var(--border-subtle); }
+.rls-plan-step.sev-high   { border-left-color: var(--color-high); }
+.rls-plan-step.sev-medium { border-left-color: var(--color-medium); }
+.rls-plan-step.sev-low    { border-left-color: var(--color-low); }
+.rls-plan-step-head { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.rls-plan-step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); flex: 1; min-width: 0; }
+.rls-plan-step-count { font-size: 0.72rem; white-space: nowrap; }
+
+.rls-tables { margin: 6px 0; font-size: 0.74rem; }
+.rls-tables > summary { cursor: pointer; color: var(--text-muted); }
+.rls-tables-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.rls-tables-list code, .rls-raw-list code, .finding-title code {
+  font-family: var(--font-mono); font-size: 0.7rem; background: var(--bg-secondary, #1a1f29);
+  color: var(--text-secondary); padding: 1px 5px; border-radius: 3px;
+}
+
+.rls-fix-block, .rls-prompt-block { margin-top: var(--space-sm); }
+.rls-fix-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.rls-fix-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.rls-prompt {
+  margin-top: 4px; font-size: 0.78rem; line-height: 1.45; color: var(--text-primary);
+  background: var(--bg-secondary, #11151c); border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm, 4px); padding: 8px 10px; word-break: break-word;
+}
+
+.rls-raw, .rls-managed { margin-top: var(--space-md, 12px); font-size: 0.78rem; }
+.rls-raw > summary, .rls-managed > summary { cursor: pointer; color: var(--text-secondary); font-weight: 600; padding: 4px 0; }
+.rls-managed > summary { color: var(--text-muted); }
+.rls-raw-list { margin-top: var(--space-sm); display: flex; flex-direction: column; gap: 2px; }
+.rls-raw-list .finding-row { align-items: flex-start; }
+
+/* ---- Onboarding coach + next-step banner ---- */
+.onboard-card {
+  background: var(--bg-card); border: 1px solid var(--border-active);
+  border-radius: var(--radius-md); padding: var(--space-md);
+  margin-bottom: var(--space-md); box-shadow: var(--glass-shadow);
+}
+.onboard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
+.onboard-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.8rem; color: var(--text-primary); }
+.onboard-steps li { line-height: 1.4; }
+.onboard-steps strong { color: var(--accent-primary-hover); }
+
+.next-step {
+  display: flex; align-items: center; gap: var(--space-sm);
+  border-radius: var(--radius-md); padding: 10px var(--space-md);
+  margin-bottom: var(--space-md); font-size: 0.82rem; line-height: 1.4;
+  border: 1px solid var(--border-default); background: var(--bg-card);
+}
+.next-step.clickable { cursor: pointer; }
+.next-step.clickable:hover { background: var(--bg-card-hover); }
+.next-step.tone-warn { border-color: var(--color-high-border); background: var(--color-high-bg); color: var(--color-high); }
+.next-step.tone-info { border-color: var(--border-active); background: rgba(108, 99, 255, 0.08); color: var(--text-primary); }
+.next-step.tone-bad  { border-color: var(--color-critical-border); background: var(--color-critical-bg); color: var(--color-critical); }
+.next-step.tone-good { border-color: var(--color-clean-border); background: var(--color-clean-bg); color: var(--color-clean); }
 

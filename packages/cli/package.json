@@ -1,10 +1,10 @@
 {
-  "name": "@nxlv/shield",
+  "name": "@nxlv/audit",
   "version": "0.1.0",
   "description": "The Lovable Production-Readiness Standard — independent security audit for Lovable apps",
   "type": "module",
   "bin": {
-    "nxlv-shield": "./dist/index.js",
+    "nxlv-audit": "./dist/index.js",
     "lovable-audit": "./dist/index.js"
   },
   "main": "./dist/index.js",

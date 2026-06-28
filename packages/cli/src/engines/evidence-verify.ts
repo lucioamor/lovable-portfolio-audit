@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Evidence-pack verifier (P20)
+// @nxlv/audit — Evidence-pack verifier (P20)
 // ============================================================
 // Verifies the HMAC-SHA256 signature of an exported evidence pack, matching
 // extension/lib/evidence-pack.js byte-for-byte:

@@ -5,6 +5,11 @@ const LEVEL_ORDER = { debug: 0, info: 1, warn: 2, error: 3 };
 let globalLevel = 'info';
 export const setGlobalLevel = (level) => { globalLevel = level; };
 
+// Optional persistent sink (e.g. diagnostics ring buffer). Receives the frozen,
+// already-redacted entry. Must never throw into the logging path.
+let sink = null;
+export const setSink = (fn) => { sink = typeof fn === 'function' ? fn : null; };
+
 const SENSITIVE_PATTERNS = [
   { kind: 'JWT',         regex: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g },
   { kind: 'OpenAI',      regex: /sk-[A-Za-z0-9]{20,}/g },
@@ -49,11 +54,18 @@ class LoggerImpl {
   #emit(level, message, context = {}, error) {
     if (LEVEL_ORDER[level] < LEVEL_ORDER[globalLevel]) return;
     const merged = { ...this.#ctx, ...context };
+    // Surface the real cause: an Error/value passed as `error` is the whole point
+    // of an error log — keep its message in `message` instead of burying it in `stack`.
+    const errInfo = error instanceof Error
+      ? { name: error.name, message: error.message }
+      : (error !== undefined ? { message: String(error) } : null);
+    const fullMessage = errInfo ? `${message}: ${errInfo.message}` : message;
     const entry = Object.freeze({
       timestamp: new Date().toISOString(),
       level,
-      message: redact(message),
+      message: redact(fullMessage),
       context: redact(merged),
+      error: errInfo ? redact(errInfo) : undefined,
       stack: error instanceof Error ? error.stack : undefined,
     });
     this.#buffer.push(entry);
@@ -62,6 +74,7 @@ class LoggerImpl {
              : level === 'debug' ? console.debug
              : console.log;
     fn(`[${level.toUpperCase()}] ${entry.message}`, entry.context);
+    if (sink) { try { sink(entry); } catch (_) { /* sink must never break logging */ } }
   }
 
   debug(msg, ctx = {}) { this.#emit('debug', msg, ctx); }

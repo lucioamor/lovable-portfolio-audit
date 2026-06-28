@@ -1,5 +1,5 @@
 // ============================================================
-// NXLV Shield — DevTools panel (C4, Phase 2 bridge)
+// NXLV Audit — DevTools panel (C4, Phase 2 bridge)
 // ============================================================
 // Live view over the passive sensor. Reads masked findings + observed
 // endpoints + routes/sinks from the service worker, refreshes on

@@ -1,5 +1,5 @@
 # ============================================================
-# NXLV Shield — Lovable security audit (SARIF → GitHub Security tab)
+# NXLV Audit — Lovable security audit (SARIF → GitHub Security tab)
 # ============================================================
 # This workflow builds the CLI from packages/cli, runs the `ci` subcommand
 # (SARIF output + exit code 1 on critical/catastrophic findings), and uploads
@@ -18,7 +18,7 @@
 # additionally guarded on the secret being present.
 # ============================================================
 
-name: NXLV Shield
+name: NXLV Audit
 
 on:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
         run: npm run build
         working-directory: packages/cli
 
-      - name: Run NXLV Shield (CI scan → SARIF)
+      - name: Run NXLV Audit (CI scan → SARIF)
         if: steps.guard.outputs.run == 'true'
         # `ci` writes SARIF and exits 1 on critical/catastrophic findings. We
         # keep going so the SARIF still uploads; the recorded exit code is
@@ -75,11 +75,11 @@ jobs:
         continue-on-error: true
         env:
           LOVABLE_TOKEN: ${{ secrets.LOVABLE_TOKEN }}
-        run: node packages/cli/dist/index.js ci --output nxlv-shield.sarif
+        run: node packages/cli/dist/index.js ci --output nxlv-audit.sarif
 
       - name: Upload SARIF to GitHub Security tab
         if: steps.guard.outputs.run == 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: nxlv-shield.sarif
-          category: nxlv-shield
+          sarif_file: nxlv-audit.sarif
+          category: nxlv-audit

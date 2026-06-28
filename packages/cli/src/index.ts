@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 // ============================================================
-// @nxlv/shield — CLI Entry Point
+// @nxlv/audit — CLI Entry Point
 // ============================================================
 // Usage:
-//   npx @nxlv/shield scan [options]
-//   npx @nxlv/shield scan --url https://myapp.lovable.app
-//   npx @nxlv/shield scan --token <bearer> --deep
-//   npx @nxlv/shield scan --format sarif --output results.sarif
+//   npx @nxlv/audit scan [options]
+//   npx @nxlv/audit scan --url https://myapp.lovable.app
+//   npx @nxlv/audit scan --token <bearer> --deep
+//   npx @nxlv/audit scan --format sarif --output results.sarif
 // ============================================================
 
 import { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { writeFileSync, readFileSync } from 'fs';
-import { renderChecklist, parseRlsResult, classifyRlsAudit } from './engines/rls-checklist.js';
+import { renderChecklist, parseRlsResult, classifyRlsAudit, summarizeRlsAudit, buildRemediationPlan } from './engines/rls-checklist.js';
 import {
   DEFAULT_BASELINE_PATH,
   emptyBaseline,
@@ -33,7 +33,7 @@ import type { ScannerConfig, Finding } from './types.js';
 import type { RLSPolicyCheck } from './engines/supabase-engine.js';
 
 const VERSION = '0.1.0';
-const log = createLogger({ tool: 'nxlv-shield' });
+const log = createLogger({ tool: 'nxlv-audit' });
 
 function resolveBaselinePath(opt: unknown): string | undefined {
   if (opt === undefined || opt === false) return undefined;
@@ -62,37 +62,40 @@ function printDelta(delta: DeltaSummary): string {
 }
 
 function printRlsFindings(findings: Finding[], policyChecks: RLSPolicyCheck[]): string {
+  const s = summarizeRlsAudit(findings, policyChecks);
   const lines: string[] = [
     '',
     chalk.bold('═══════════════════════════════════════════════'),
-    chalk.bold('  🛡️  NXLV Shield — Deep RLS Classification'),
+    chalk.bold('  🛡️  NXLV Audit — Deep RLS Classification'),
     chalk.bold('═══════════════════════════════════════════════'),
     '',
-    `  Tables analyzed:   ${policyChecks.length}`,
-    `  Findings:          ${findings.length}`,
+    `  Tables analyzed:   ${s.tables}`,
+    `  Actionable:        ${chalk.bold(String(s.actionable))}`,
+    `  Managed (context): ${s.managedRaw} in Supabase-managed schemas (collapsed)`,
     '',
   ];
 
-  if (findings.length === 0) {
-    lines.push(chalk.green('  ✅ No deep-RLS issues found in the pasted result.'));
+  if (s.actionable === 0) {
+    lines.push(chalk.green('  ✅ No actionable deep-RLS issues in your application schemas.'));
+    if (s.managed) lines.push(chalk.gray(`  (${s.managed} platform-managed finding(s) hidden — they are not fixable from the SQL editor.)`));
     lines.push('');
     return lines.join('\n');
   }
 
-  const order = { catastrophic: 5, critical: 4, high: 3, medium: 2, low: 1, info: 0 } as const;
-  const sorted = [...findings].sort((a, b) =>
-    (order[b.severity as keyof typeof order] ?? 0) - (order[a.severity as keyof typeof order] ?? 0));
-
-  for (const f of sorted) {
-    const color = f.severity === 'catastrophic' || f.severity === 'critical' ? chalk.red
-                : f.severity === 'high' ? chalk.yellow : chalk.gray;
-    lines.push(color(`  [${f.ruleId}] ${f.title}`));
-    lines.push(chalk.gray(`          ${f.evidence}`));
-    if (f.remediationSql) {
-      lines.push(chalk.cyan(`          fix: ${f.remediationSql.split('\n')[0]}`));
-    }
-  }
+  const plan = buildRemediationPlan(findings);
+  lines.push(chalk.bold(`  Remediation plan — ${plan.length} step${plan.length === 1 ? '' : 's'}:`));
   lines.push('');
+  plan.forEach((step, i) => {
+    const color = step.severity === 'high' ? chalk.yellow : chalk.gray;
+    lines.push(color(`  ${i + 1}. [${step.ruleId}] ${step.label}  ${chalk.gray(`(${step.count} item${step.count === 1 ? '' : 's'})`)}`));
+    lines.push(chalk.gray(`     Prompt: ${step.prompt}`));
+    if (step.sql) {
+      const first = step.sql.split('\n')[0];
+      const more = step.sql.split('\n').length - 1;
+      lines.push(chalk.cyan(`     SQL:    ${first}${more > 0 ? chalk.gray(`  (+${more} more line${more === 1 ? '' : 's'})`) : ''}`));
+    }
+    lines.push('');
+  });
   lines.push(chalk.gray('  Run with --format json on a full scan to combine these with other findings.'));
   lines.push('');
   return lines.join('\n');
@@ -150,7 +153,10 @@ async function main() {
           const raw = readFileSync(opts.rlsResult, 'utf-8');
           const { findings, policyChecks } = classifyRlsAudit(parseRlsResult(raw));
           console.log(printRlsFindings(findings, policyChecks));
-          process.exit(findings.some(f => f.severity === 'high' || f.severity === 'critical' || f.severity === 'catastrophic') && !opts.exitZero ? 1 : 0);
+          // Only actionable (non-managed) high/critical findings fail CI — platform-managed
+          // schemas (auth/storage/realtime/…) are out of the user's control.
+          const failing = findings.some(f => !f.managed && (f.severity === 'high' || f.severity === 'critical' || f.severity === 'catastrophic'));
+          process.exit(failing && !opts.exitZero ? 1 : 0);
         } catch (err) {
           console.error(chalk.red(`\n❌ ${(err as Error).message}`));
           process.exit(1);
@@ -357,10 +363,18 @@ async function main() {
 
       const { LovableAPIClient } = await import('./engines/lovable-client.js');
       const client = new LovableAPIClient(token);
-      const { valid, userId } = await client.validateToken();
+      const { valid, userId, projectScoped } = await client.validateToken();
 
       if (valid) {
-        console.log(chalk.green(`✅ Token valid${userId ? ` (user: ${userId})` : ''}`));
+        const scope = projectScoped ? ' (project-scoped token)' : '';
+        console.log(chalk.green(`✅ Token valid${userId ? ` (user: ${userId})` : ''}${scope}`));
+        if (projectScoped) {
+          const payload = LovableAPIClient.decodeTokenPayload(token);
+          if (payload?.project_id) {
+            console.log(chalk.cyan(`   Project: ${payload.project_id}`));
+            console.log(chalk.gray('   Tip: run scan with --projects ' + payload.project_id));
+          }
+        }
       } else {
         console.error(chalk.red('❌ Token invalid or expired'));
         process.exit(1);

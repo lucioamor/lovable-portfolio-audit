@@ -14,10 +14,33 @@ const SIGNATURE_MATRIX = {
   '200:429': 'rate_limited',
 };
 
+// A failure is only worth retrying when it is *transient* — i.e. the same call
+// might succeed moments later. Network failures (status 0), request timeouts,
+// rate limiting and 5xx qualify. A deterministic 4xx (405 method drift, 422
+// bad-shape, 404 path drift) will NEVER change on retry, so retrying it just
+// triples API load and floods the diagnostic log ring with noise that buries
+// the real signal. See audit-engine probeWithRetry.
+export function isRetryableStatus(status) {
+  return status === 0 || status === 408 || status === 429 || status >= 500;
+}
+
+// Distinguish *why* a probe didn't yield a clean owner×audit signature so the
+// self-diagnosis can tell endpoint drift (fixable in our code) apart from an
+// upstream outage (wait and retry). Both used to collapse into 'error'.
+function classifyDeterministic(ownerStatus) {
+  if (ownerStatus === 404) return 'not_found';   // path likely drifted
+  if (ownerStatus >= 400 && ownerStatus < 500) return 'drift'; // 405/422/etc — method/shape drifted
+  return 'error';                                  // 0/5xx — transient/outage
+}
+
 function classify(ownerStatus, auditStatus) {
-  if (ownerStatus >= 500 || auditStatus >= 500) return 'error';
-  if ([401, 403, 0].includes(ownerStatus)) return 'inaccessible';
-  return SIGNATURE_MATRIX[`${ownerStatus}:${auditStatus}`] ?? 'error';
+  if ([401, 403, 0].includes(ownerStatus)) {
+    return ownerStatus === 0 ? 'error' : 'inaccessible';
+  }
+  const sig = SIGNATURE_MATRIX[`${ownerStatus}:${auditStatus}`];
+  if (sig) return sig;
+  // Unmatched: classify by the owner status (the call we actually control).
+  return classifyDeterministic(ownerStatus >= 500 || auditStatus >= 500 ? 0 : ownerStatus);
 }
 
 async function doFetch(url, token) {
@@ -53,6 +76,10 @@ export async function probeDual(endpoint, projectId, config) {
   await sleep(throttleMs);
   const audit = await doFetch(endpoint, auditToken);
   const signature = classify(owner.status, audit.status);
+  // Retry when either side hit a transient status (network/timeout/429/5xx).
+  // A clean owner/security verdict requires owner=200 + a non-retryable audit
+  // status, so this never re-runs a settled probe — only genuinely flaky ones.
+  const retryable = isRetryableStatus(owner.status) || isRetryableStatus(audit.status);
 
   logger.debug('probe classified', { projectId, signature });
 
@@ -60,7 +87,10 @@ export async function probeDual(endpoint, projectId, config) {
     endpoint, projectId,
     owner: { status: owner.status, contentLength: owner.contentLength, errorCode: owner.errorCode },
     audit: { status: audit.status, contentLength: audit.contentLength, errorCode: audit.errorCode },
+    httpStatus: owner.status,
+    errorCode: owner.errorCode,
     signature,
+    retryable,
     probedAt: new Date().toISOString(),
     latencyMs: { owner: owner.latencyMs, audit: audit.latencyMs },
   });
@@ -78,14 +108,15 @@ export async function probeSingle(endpoint, projectId, ownerToken) {
     const contentLength = Number(response.headers.get('content-length')) || undefined;
     const status = response.status;
     const signature = status === 200 ? 'owner_only'
-                    : status === 403 ? 'inaccessible'
-                    : status === 401 ? 'inaccessible'
-                    : 'error';
+                    : (status === 403 || status === 401) ? 'inaccessible'
+                    : classifyDeterministic(status); // 404→not_found, other 4xx→drift, 0/5xx→error
     return Object.freeze({
       endpoint, projectId,
       owner: { status, contentLength },
       audit: null,
+      httpStatus: status,
       signature,
+      retryable: isRetryableStatus(status), // 429/5xx/network only; 200 & 4xx-drift are final
       probedAt: new Date().toISOString(),
       latencyMs: { owner: Math.round(performance.now() - started), audit: 0 },
       singleToken: true,
@@ -95,7 +126,10 @@ export async function probeSingle(endpoint, projectId, ownerToken) {
       endpoint, projectId,
       owner: { status: 0, errorCode: err.name },
       audit: null,
+      httpStatus: 0,
+      errorCode: err.name,
       signature: 'error',
+      retryable: true, // network throw — transient by definition
       probedAt: new Date().toISOString(),
       latencyMs: { owner: Math.round(performance.now() - started), audit: 0 },
       singleToken: true,

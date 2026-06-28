@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/shield — Supabase Security Engine
+// @nxlv/audit — Supabase Security Engine
 // ============================================================
 // Checks: DB-001..015, APP-009 (security headers), LOV-002
 // DAST uses anon key only — read-only, no data modification.
@@ -379,7 +379,7 @@ export async function checkSecurityHeaders(url: string): Promise<SecurityHeaders
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'User-Agent': 'nxlv-shield/0.1.0 (security-audit; read-only)' },
+      headers: { 'User-Agent': 'nxlv-audit/0.1.0 (security-audit; read-only)' },
       signal: AbortSignal.timeout(10000),
     });
 

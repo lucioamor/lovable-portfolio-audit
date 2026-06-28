@@ -2,7 +2,7 @@
   'use strict';
 
   // ============================================================
-  // NXLV Shield — Passive Sensor (page-context interceptor)
+  // NXLV Audit — Passive Sensor (page-context interceptor)
   // ============================================================
   // Wraps fetch/XHR. For Lovable API traffic the browser ALREADY received,
   // it extracts security signals IN THIS PAGE CONTEXT, masks + hashes them,
@@ -63,9 +63,12 @@
         hits++;
         found.push({
           patternId: p.id, kind: p.kind, severity: p.severity, label: p.label,
-          masked: maskValue(raw), hash: await sha256_16(raw), source,
+          // Hash the lowercased value for emails so an ignore-list match is case-insensitive.
+          masked: maskValue(raw), hash: await sha256_16(p.id === 'pii_email' ? low : raw), source,
         });
-        re.lastIndex = m.index + 1;
+        // Advance past the WHOLE match. match.index+1 re-matches the same value
+        // shifted by one char, flooding a single email into ~20 fragment findings.
+        re.lastIndex = m.index + (raw.length || 1);
       }
     }
     return found;
@@ -77,7 +80,11 @@
       const u = new URL(urlStr, location.href);
       let p = u.pathname;
       p = p.replace(/\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '/:id'); // uuid
+      p = p.replace(/\/workspaces\/[A-Za-z0-9_-]+/g, '/workspaces/:id'); // any workspace ID (base62 or workspace_xxx)
+      // Keep in sync with lib/passive-endpoints.js normalizeLovablePath():
+      p = p.replace(/(\/cloud\/db-proxy\/v\d+\/projects\/)[a-z0-9]{16,}/gi, '$1:ref'); // supabase ref
       p = p.replace(/\/git\/files\/.+$/i, '/git/files/:file');
+      p = p.replace(/\/profile\/[^/]+/i, '/profile/:username');
       p = p.replace(/\/\d+(?=\/|$)/g, '/:n');
       return p;
     } catch { return urlStr; }
