@@ -1,8 +1,14 @@
-# Lovable Project Visibility & Hygiene Audit
+# NXLV Audit — Lovable Portfolio Audit
+
+> The self-audit security toolkit for Lovable builders — by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim), **Lovable Ambassador**.
 
 A self-service audit tool for Lovable.dev users to review their own projects for exposed credentials, misconfigured Supabase RLS policies, and sensitive data left in source code or chat history.
 
 Run it against your own account. Get a clear report. Fix what needs fixing.
+
+Built and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — the same hands behind the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) (`/wireframe`, `/debate`, `/unbot`). This project is part of a wider toolkit for builders who don't just ship Lovable apps — they verify, harden, and stand behind them.
+
+[![Author: Lucio Amorim](https://img.shields.io/badge/By-Lucio%20Amorim-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim) [![Role: Lovable Ambassador](https://img.shields.io/badge/Lovable-Ambassador-8b5cf6?style=flat-square)](https://linkedin.com/in/lucioamorim) [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-2ed573?style=flat-square)](./LICENSE)
 
 ## Why this exists
 
@@ -98,17 +104,17 @@ A ready-to-use GitHub Action workflow lives in `.github/workflows/nxlv-audit.yml
 
 ```bash
 # Regenerate a report from a saved JSON result — no re-scan
-npx @nxlv/shield report results.json --format html --output report.html
+npx @nxlv/audit report results.json --format html --output report.html
 
 # Extract the copy-paste AI fix prompts from a saved result
-npx @nxlv/shield fix-prompt results.json --output prompts.md
+npx @nxlv/audit fix-prompt results.json --output prompts.md
 
 # Verify the HMAC signature of an exported evidence pack
-npx @nxlv/shield verify-evidence pack.json --passphrase <device-key>
+npx @nxlv/audit verify-evidence pack.json --passphrase <device-key>
 
 # Track drift vs a baseline and POST a summary to a webhook
 # (payload carries only counts + finding identifiers — no tokens, no raw bodies)
-npx @nxlv/shield scan --token <bearer> --baseline --webhook https://example.com/hook
+npx @nxlv/audit scan --token <bearer> --baseline --webhook https://example.com/hook
 ```
 
 ### Developer tooling
@@ -185,7 +191,7 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 │           ├── rls-checklist.js   # Deep-RLS copy-paste checklist classifier
 │           └── pattern-catalog.js # Dynamic rule catalog (remote fetch + toggle + TTL cache)
 │
-├── packages/cli/                  # Standalone CLI (@nxlv/shield, TypeScript)
+├── packages/cli/                  # Standalone CLI (@nxlv/audit, TypeScript)
 │   └── src/
 │       ├── index.ts               # CLI entry — scan / verify / ci commands
 │       ├── commands/scan.ts       # Scan orchestrator
@@ -215,10 +221,23 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 
 This tool is for auditing your own account. The Chrome Extension operates only on projects belonging to the authenticated user's session, and the CLI only on the account behind the token you provide. It is not designed for, and cannot be used for, inspecting projects belonging to other accounts.
 
-## Author
+## About the author
 
-Built by [Lucio Amorim](https://linkedin.com/in/lucioamorim).
+Created and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — **Lovable Ambassador**.
+
+Lucio builds practical infrastructure for people who take Lovable seriously: not just to generate apps, but to review them, secure them, move context between tools, and ship with confidence. NXLV Audit is the security half of that toolkit; the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) — `/wireframe`, `/debate`, `/unbot` — is the other half.
+
+If this tool saved you from shipping an exposed `service_role` key, that's the whole point. Connect on [LinkedIn](https://linkedin.com/in/lucioamorim) and tell me what it caught.
+
+- 🔗 LinkedIn: [linkedin.com/in/lucioamorim](https://linkedin.com/in/lucioamorim)
+- 🧰 Lovable Skills: [github.com/lucioamor/lovable-skills](https://github.com/lucioamor/lovable-skills)
 
 ## License
 
-MIT
+Licensed under [**Creative Commons Attribution 4.0 International (CC BY 4.0)**](./LICENSE).
+
+In plain terms: **use it freely** — including commercially — but if you reproduce it, redistribute it, or fold any part of it into a product of your own, you **must credit [Lucio Amorim](https://linkedin.com/in/lucioamorim) as a contributor**, link back to his LinkedIn, and link to the license.
+
+Suggested attribution line:
+
+> Includes work by Lucio Amorim (Lovable Ambassador) — https://linkedin.com/in/lucioamorim — licensed under CC BY 4.0.

@@ -2,7 +2,8 @@
   "manifest_version": 3,
   "name": "NXLV Audit — Lovable Portfolio Audit",
   "version": "2.0.0",
-  "description": "Scan your Lovable.dev projects for BOLA/IDOR exposure, exposed secrets, and Supabase RLS gaps. Local-first, read-only, privacy-preserving.",
+  "description": "Scan your Lovable.dev projects for BOLA/IDOR exposure, exposed secrets, and Supabase RLS gaps. Local-first, read-only, privacy-preserving. By Lucio Amorim, Lovable Ambassador.",
+  "author": "Lucio Amorim (Lovable Ambassador) — https://linkedin.com/in/lucioamorim",
   "homepage_url": "https://github.com/lucioamor/lovable-portfolio-audit",
   "permissions": [
     "cookies",

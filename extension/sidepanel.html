@@ -38,8 +38,8 @@
     </div>
     <div class="modal-footer">
       <span id="legal-scroll-hint" class="hint">↓ Scroll to read all terms</span>
-      <button id="legal-reject-btn" class="btn btn-ghost">I do not accept</button>
-      <button id="legal-accept-btn" class="btn btn-primary" disabled>I have read and agree</button>
+      <button id="legal-reject-btn" class="btn btn-ghost" title="Decline and close — nothing runs without your consent">I do not accept</button>
+      <button id="legal-accept-btn" class="btn btn-primary" disabled title="Scroll to the bottom to enable. Accepting records consent locally and unlocks the scanner">I have read and agree</button>
     </div>
   </div>
 </div>
@@ -58,8 +58,8 @@
       <p id="vault-setup-error" class="error-msg hidden"></p>
     </div>
     <div class="modal-footer">
-      <button id="vault-setup-cancel" class="btn btn-ghost">Cancel</button>
-      <button id="vault-setup-submit" class="btn btn-primary">Initialize vault</button>
+      <button id="vault-setup-cancel" class="btn btn-ghost" title="Close without creating a vault — you can still scan using your live Lovable session">Cancel</button>
+      <button id="vault-setup-submit" class="btn btn-primary" title="Create the encrypted vault (AES-256-GCM) using this passphrase">Initialize vault</button>
     </div>
   </div>
 </div>
@@ -77,7 +77,34 @@
       <p id="vault-unlock-error" class="error-msg hidden"></p>
     </div>
     <div class="modal-footer">
-      <button id="vault-unlock-submit" class="btn btn-primary">Unlock</button>
+      <button id="vault-unlock-submit" class="btn btn-primary" title="Decrypt your stored tokens for this session">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GUIDED ONBOARDING TOUR ===== -->
+<div id="tour-overlay" class="tour-overlay hidden">
+  <div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+    <div class="tour-head">
+      <span id="tour-step-badge" class="tour-step-badge">Step 1 / 7</span>
+      <button id="tour-skip" class="icon-btn" title="Skip the tour — you can replay it anytime from Settings → About">Skip ✕</button>
+    </div>
+    <div class="tour-body">
+      <div id="tour-emoji" class="tour-emoji">🛡️</div>
+      <h2 id="tour-title">Welcome to NXLV Audit</h2>
+      <p id="tour-text">Let's take 30 seconds to walk through how to audit your Lovable projects.</p>
+      <div id="tour-author" class="tour-author hidden">
+        <span>Crafted by</span>
+        <a href="https://linkedin.com/in/lucioamorim" target="_blank" title="Connect with Lucio Amorim on LinkedIn">Lucio Amorim</a>
+        <span class="tour-author-role">Lovable Ambassador</span>
+      </div>
+    </div>
+    <div class="tour-foot">
+      <div id="tour-dots" class="tour-dots"></div>
+      <div class="tour-nav">
+        <button id="tour-back" class="btn btn-ghost btn-sm" title="Previous step">← Back</button>
+        <button id="tour-next" class="btn btn-primary btn-sm" title="Next step">Next →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -94,16 +121,16 @@
       </div>
     </div>
     <div class="header-actions">
-      <button id="vault-status-btn" class="icon-btn" title="Vault status">🔐</button>
+      <button id="vault-status-btn" class="icon-btn" title="Open the token vault in Settings (encrypted, on-device)">🔐</button>
     </div>
   </header>
 
   <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="scan">Scan</button>
-    <button class="tab-btn" data-tab="results">Results</button>
-    <button class="tab-btn" data-tab="rls">RLS Deep</button>
-    <button class="tab-btn" data-tab="history">History</button>
-    <button class="tab-btn" data-tab="settings">Settings</button>
+    <button class="tab-btn active" data-tab="scan" title="Configure and run a scan of your own Lovable projects">Scan</button>
+    <button class="tab-btn" data-tab="results" title="Browse findings per project, worst issues first">Results</button>
+    <button class="tab-btn" data-tab="rls" title="Deep Supabase RLS audit via a copy-paste, read-only SQL checklist">RLS Deep</button>
+    <button class="tab-btn" data-tab="history" title="Review past scans and compare runs to track drift">History</button>
+    <button class="tab-btn" data-tab="settings" title="Token vault, scan defaults, passive sensor, patterns, diagnostics">Settings</button>
   </nav>
 
   <!-- SCAN TAB -->
@@ -117,7 +144,7 @@
     <div id="onboard-card" class="onboard-card hidden">
       <div class="onboard-head">
         <strong>👋 Welcome — here's the flow</strong>
-        <button id="onboard-dismiss" class="icon-btn" title="Dismiss">✕</button>
+        <button id="onboard-dismiss" class="icon-btn" title="Dismiss this quick recap (you can replay the full guided tour from Settings)">✕</button>
       </div>
       <ol class="onboard-steps">
         <li><strong>Log in to lovable.dev</strong> in this browser (or save a token in Settings → Vault). The scan uses <em>your own</em> session — read-only, nothing leaves your browser.</li>
@@ -132,9 +159,9 @@
 
     <div class="scan-card">
       <div class="scan-options">
-        <label class="toggle-row"><input type="checkbox" id="opt-chat" checked><span>Scan AI chat history</span></label>
-        <label class="toggle-row"><input type="checkbox" id="opt-files"><span>Deep-inspect file content <span class="badge-warn">L2</span></span></label>
-        <label class="toggle-row"><input type="checkbox" id="opt-dual-probe"><span>Dual-probe BOLA <span class="badge-info">audit token</span></span></label>
+        <label class="toggle-row" title="Also scan your projects' AI chat history for leaked secrets and PII"><input type="checkbox" id="opt-chat" checked><span>Scan AI chat history</span></label>
+        <label class="toggle-row" title="L2 consent: download and scan file contents locally. Slower, deeper, never leaves your browser"><input type="checkbox" id="opt-files"><span>Deep-inspect file content <span class="badge-warn">L2</span></span></label>
+        <label class="toggle-row" title="Confirm BOLA/IDOR with a second account's token (200→200 = vulnerable, 200→403 = patched)"><input type="checkbox" id="opt-dual-probe"><span>Dual-probe BOLA <span class="badge-info">audit token</span></span></label>
       </div>
 
       <div id="audit-token-row" class="audit-token-row hidden">
@@ -145,15 +172,15 @@
       </div>
 
       <div class="scan-actions">
-        <button id="scan-btn" class="btn btn-primary btn-full">▶ Start Scan</button>
-        <button id="demo-btn" class="btn btn-ghost">Load Demo</button>
+        <button id="scan-btn" class="btn btn-primary btn-full" title="Run a read-only audit of every project you own">▶ Start Scan</button>
+        <button id="demo-btn" class="btn btn-ghost" title="Explore the full dashboard with realistic sample data — no login or token needed">Load Demo</button>
       </div>
     </div>
 
     <div id="scan-progress" class="progress-section hidden">
       <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar"></div></div>
       <div id="progress-label" class="progress-label">Initializing...</div>
-      <button id="stop-btn" class="btn btn-danger-ghost btn-sm">⏹ Stop</button>
+      <button id="stop-btn" class="btn btn-danger-ghost btn-sm" title="Stop the scan now — results gathered so far are kept">⏹ Stop</button>
     </div>
 
     <div id="summary-grid" class="summary-grid hidden">
@@ -170,8 +197,8 @@
   <!-- RESULTS TAB -->
   <div id="tab-results" class="tab-content hidden">
     <div class="results-toolbar">
-      <input type="text" id="results-filter" placeholder="Filter by project name...">
-      <select id="severity-filter">
+      <input type="text" id="results-filter" placeholder="Filter by project name..." title="Type to filter findings by project name">
+      <select id="severity-filter" title="Show only findings at this severity level">
         <option value="">All</option>
         <option value="catastrophic">💀 Catastrophic</option>
         <option value="critical">🔴 Critical</option>
@@ -180,8 +207,8 @@
         <option value="low">🔵 Low</option>
         <option value="clean">🟢 Clean</option>
       </select>
-      <button id="export-btn" class="btn btn-ghost btn-sm" title="Export evidence pack">📦</button>
-      <button id="clear-btn" class="btn btn-danger-ghost btn-sm" title="Clear results">🗑</button>
+      <button id="export-btn" class="btn btn-ghost btn-sm" title="Export an HMAC-signed evidence pack (.json) — tamper-proof, shareable proof of the scan">📦</button>
+      <button id="clear-btn" class="btn btn-danger-ghost btn-sm" title="Clear all results from this view and local storage">🗑</button>
     </div>
     <div id="results-list" class="results-list"><div class="empty-state">Run a scan to see results</div></div>
   </div>
@@ -192,12 +219,12 @@
       <h3>Deep RLS audit <span class="badge-info">copy-paste</span></h3>
       <p class="hint">RLS policy depth (DB-003/004/005/008/009) needs Postgres introspection the anon key can't reach. This tool never runs SQL against your database — you run a read-only query and paste the result back.</p>
       <div class="scan-actions">
-        <button id="rls-show-sql" class="btn btn-ghost btn-sm">① Show audit SQL</button>
-        <button id="rls-copy-sql" class="btn btn-ghost btn-sm">📋 Copy SQL</button>
+        <button id="rls-show-sql" class="btn btn-ghost btn-sm" title="Reveal the read-only introspection SQL you'll run in your own Supabase SQL editor">① Show audit SQL</button>
+        <button id="rls-copy-sql" class="btn btn-ghost btn-sm" title="Copy the audit SQL to your clipboard">📋 Copy SQL</button>
       </div>
       <pre id="rls-sql" class="rls-sql hidden"></pre>
       <div class="scan-actions">
-        <button id="rls-import-csv" class="btn btn-ghost btn-sm">📁 Import CSV</button>
+        <button id="rls-import-csv" class="btn btn-ghost btn-sm" title="Import the CSV that Supabase exported from the audit query">📁 Import CSV</button>
         <span id="rls-import-status" class="hint-inline"></span>
         <input type="file" id="rls-csv-file" accept=".csv,text/csv" class="hidden">
       </div>
@@ -205,7 +232,7 @@
         <textarea id="rls-input" class="rls-input" rows="5" placeholder='Import the .csv, or paste {"policies":[...],"tables":[...],"grants":[...],"roles":[...]}'></textarea>
       </label>
       <div class="scan-actions">
-        <button id="rls-classify" class="btn btn-primary btn-full">③ Classify</button>
+        <button id="rls-classify" class="btn btn-primary btn-full" title="Classify the pasted result into DB-003/004/005/008/009 findings with fixes">③ Classify</button>
       </div>
     </div>
     <div id="rls-findings" class="results-list"><div class="empty-state">Paste a result and classify to see RLS findings</div></div>
@@ -215,7 +242,7 @@
   <div id="tab-history" class="tab-content hidden">
     <div class="history-header">
       <h3>Scan history</h3>
-      <button id="compare-runs-btn" class="btn btn-ghost btn-sm hidden">↔ Compare last 2</button>
+      <button id="compare-runs-btn" class="btn btn-ghost btn-sm hidden" title="Diff your two most recent scans — new vs resolved findings and score changes">↔ Compare last 2</button>
     </div>
     <div id="history-list" class="history-list"><div class="empty-state">No scan history yet</div></div>
     <div id="delta-view" class="delta-view hidden"></div>
@@ -228,46 +255,46 @@
       <p class="hint">AES-256-GCM + PBKDF2. Tokens never leave your browser.</p>
       <div id="vault-not-init">
         <p class="warning-text">Vault not initialized.</p>
-        <button id="vault-init-btn" class="btn btn-primary btn-sm">Initialize vault</button>
+        <button id="vault-init-btn" class="btn btn-primary btn-sm" title="Create an encrypted vault to store your Lovable tokens on-device">Initialize vault</button>
       </div>
       <div id="vault-locked" class="hidden">
         <p>Vault is locked.</p>
-        <button id="vault-unlock-btn" class="btn btn-primary btn-sm">🔓 Unlock</button>
+        <button id="vault-unlock-btn" class="btn btn-primary btn-sm" title="Enter your passphrase to decrypt stored tokens">🔓 Unlock</button>
       </div>
       <div id="vault-unlocked" class="hidden">
         <p class="success-text">✓ Vault unlocked</p>
         <div class="vault-token-row">
           <label>Owner token<input type="password" id="vault-owner-input" placeholder="Bearer eyJ..."></label>
-          <button id="vault-save-owner" class="btn btn-sm">Save</button>
+          <button id="vault-save-owner" class="btn btn-sm" title="Encrypt and store your primary Lovable account token">Save</button>
         </div>
         <div class="vault-token-row">
           <label>Audit token <span class="hint-inline">(optional)</span><input type="password" id="vault-audit-input" placeholder="Bearer eyJ..."></label>
-          <button id="vault-save-audit" class="btn btn-sm">Save</button>
+          <button id="vault-save-audit" class="btn btn-sm" title="Store a second account's token for confirmed dual-probe BOLA detection">Save</button>
         </div>
         <div class="vault-actions">
-          <button id="vault-lock-btn" class="btn btn-ghost btn-sm">🔒 Lock</button>
-          <button id="vault-reset-btn" class="btn btn-danger-ghost btn-sm">⚠ Reset</button>
+          <button id="vault-lock-btn" class="btn btn-ghost btn-sm" title="Lock the vault and wipe decrypted tokens from memory">🔒 Lock</button>
+          <button id="vault-reset-btn" class="btn btn-danger-ghost btn-sm" title="Permanently delete the vault and all stored tokens — cannot be undone">⚠ Reset</button>
         </div>
       </div>
     </section>
 
     <section class="settings-section">
       <h3>⚙️ Scan defaults</h3>
-      <label class="toggle-row"><input type="checkbox" id="setting-chat" checked><span>Scan chat by default</span></label>
+      <label class="toggle-row" title="Pre-enable the 'Scan AI chat history' option on every new scan"><input type="checkbox" id="setting-chat" checked><span>Scan chat by default</span></label>
       <div class="setting-row">
-        <label>Request delay (ms)<input type="number" id="setting-delay" min="200" max="5000" value="500" style="width:80px"></label>
+        <label title="Throttle between API requests. Higher = gentler on the Lovable API">Request delay (ms)<input type="number" id="setting-delay" min="200" max="5000" value="500" style="width:80px" title="Throttle between API requests. Higher = gentler on the Lovable API"></label>
       </div>
     </section>
 
     <section class="settings-section">
       <h3>📡 Passive sensor <span class="badge-info">Phase 2</span></h3>
       <p class=”hint”>Collects masked findings while you browse Lovable — no extra requests, raw bodies never leave the page. OFF by default (safe mode). Live view in DevTools → “NXLV Audit”.</p>
-      <label class="toggle-row"><input type="checkbox" id="setting-passive"><span>Enable passive sensor</span></label>
+      <label class="toggle-row" title="Collect masked findings from traffic you generate while browsing Lovable. No extra requests; off by default (safe mode)"><input type="checkbox" id="setting-passive"><span>Enable passive sensor</span></label>
       <div class="setting-row">
         <span class="hint" id="passive-count">0 findings · 0 endpoints</span>
         <div>
-          <button id="passive-details-btn" class="btn btn-ghost btn-sm">Show endpoints</button>
-          <button id="passive-clear-btn" class="btn btn-ghost btn-sm">Clear passive data</button>
+          <button id="passive-details-btn" class="btn btn-ghost btn-sm" title="Show the API endpoints observed while browsing, plus any new-endpoint candidates">Show endpoints</button>
+          <button id="passive-clear-btn" class="btn btn-ghost btn-sm" title="Delete all passively collected findings and endpoint metadata">Clear passive data</button>
         </div>
       </div>
       <pre id="passive-details" class="rls-sql hidden"></pre>
@@ -277,7 +304,7 @@
       </label>
       <div class="setting-row">
         <span class="hint" id="email-ignore-count">0 email(s) ignored</span>
-        <button id="email-ignore-save" class="btn btn-ghost btn-sm">Save ignore list</button>
+        <button id="email-ignore-save" class="btn btn-ghost btn-sm" title="Store these emails as hashes so the passive sensor stops flagging them">Save ignore list</button>
       </div>
     </section>
 
@@ -285,8 +312,8 @@
       <h3>🩺 Diagnostics</h3>
       <p class="hint">Exports a single redacted <code>.txt</code> snapshot — live endpoint status (diagnoses scan/405 errors), the real observed API surface, recent error logs, and extension state. Paste it into a new Claude Code window to start a repair session. No secrets are included.</p>
       <div class="scan-actions">
-        <button id="diag-build-btn" class="btn btn-primary btn-sm">🩺 Generate report (.txt)</button>
-        <button id="diag-clear-logs-btn" class="btn btn-ghost btn-sm">Clear logs</button>
+        <button id="diag-build-btn" class="btn btn-primary btn-sm" title="Export a redacted .txt snapshot (no secrets) to hand off for a repair session">🩺 Generate report (.txt)</button>
+        <button id="diag-clear-logs-btn" class="btn btn-ghost btn-sm" title="Erase the locally stored diagnostic log entries">Clear logs</button>
       </div>
       <p id="diag-status" class="hint hidden"></p>
     </section>
@@ -294,8 +321,8 @@
     <section class="settings-section">
       <h3>🔍 Detection patterns</h3>
       <div class="patterns-toolbar">
-        <button id="refresh-patterns-btn" class="btn btn-ghost btn-sm">↻ Refresh catalog</button>
-        <button id="reset-toggles-btn" class="btn btn-ghost btn-sm">Reset</button>
+        <button id="refresh-patterns-btn" class="btn btn-ghost btn-sm" title="Re-download the public secret-detection pattern catalog (no credentials sent)">↻ Refresh catalog</button>
+        <button id="reset-toggles-btn" class="btn btn-ghost btn-sm" title="Re-enable every detection pattern to its default state">Reset</button>
       </div>
       <div id="pattern-list" class="pattern-list">Loading...</div>
     </section>
@@ -303,7 +330,16 @@
     <section class="settings-section">
       <h3>ℹ️ About</h3>
       <p class="hint">NXLV Audit v2.0.0 — local-first, read-only, privacy-preserving.</p>
-      <p class="hint"><a href="https://github.com/nxlv/lovable-portfolio-audit" target="_blank">github.com/nxlv/lovable-portfolio-audit</a></p>
+      <p class="hint"><a href="https://github.com/lucioamor/lovable-portfolio-audit" target="_blank" title="Open the source repository on GitHub">github.com/lucioamor/lovable-portfolio-audit</a></p>
+      <div class="about-author">
+        <span class="about-author-by">Built by</span>
+        <a href="https://linkedin.com/in/lucioamorim" target="_blank" class="about-author-name" title="Connect with Lucio Amorim on LinkedIn">Lucio Amorim</a>
+        <span class="about-author-role">Lovable Ambassador</span>
+      </div>
+      <p class="hint">Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" title="Creative Commons Attribution 4.0 International">CC BY 4.0</a> — free to use; attribution to Lucio Amorim required if you reproduce or ship it in your own product.</p>
+      <div class="scan-actions">
+        <button id="replay-onboarding-btn" class="btn btn-ghost btn-sm" title="Replay the guided walkthrough from the beginning">↻ Replay guided tour</button>
+      </div>
     </section>
   </div>
 

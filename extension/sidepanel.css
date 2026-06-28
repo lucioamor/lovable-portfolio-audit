@@ -1217,7 +1217,7 @@ textarea.input {
 }
 
 /* ============================================================
-   Side Panel v2 — NXLV Shield
+   Side Panel v2 — NXLV Audit — by Lucio Amorim (Lovable Ambassador)
    ============================================================ */
 
 /* ---- Utilities ---- */
@@ -1581,67 +1581,98 @@ input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:foc
   border: 1px solid var(--border-subtle); border-radius: var(--radius-sm, 4px);
   padding: var(--space-sm, 8px); font-family: ui-monospace, Menlo, monospace; font-size: 0.72rem; resize: vertical;
 }
-.rls-summary { font-size: 0.78rem; color: var(--text-muted); padding: var(--space-sm, 8px) 0; }
-.finding-body { flex: 1; min-width: 0; }
-.finding-fix {
-  margin-top: 4px; background: var(--bg-code, #11151c); color: var(--text-secondary, #9fb3c8);
-  border-radius: var(--radius-sm, 4px); padding: 6px 8px; font-size: 0.68rem;
-  white-space: pre-wrap; word-break: break-word;
+
+/* ============================================================
+   Guided onboarding tour
+   ============================================================ */
+.tour-overlay {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(2px);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: var(--space-md);
+}
+.tour-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7), 0 0 0 1px var(--accent-glow);
+  display: flex; flex-direction: column;
+  animation: tour-rise 0.28s ease;
+}
+@keyframes tour-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tour-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.tour-step-badge {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent-primary);
+}
+.tour-head .icon-btn { font-size: 0.72rem; width: auto; padding: 2px 8px; color: var(--text-secondary); }
+.tour-body { padding: var(--space-lg); text-align: center; }
+.tour-emoji { font-size: 2.4rem; line-height: 1; margin-bottom: var(--space-sm); }
+.tour-body h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: var(--space-sm); }
+.tour-body p { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; }
+.tour-author {
+  margin-top: var(--space-md); padding-top: var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  display: flex; flex-direction: column; gap: 2px; align-items: center;
+  font-size: 0.72rem; color: var(--text-muted);
+}
+.tour-author a { color: var(--accent-primary); font-weight: 700; font-size: 0.9rem; text-decoration: none; }
+.tour-author a:hover { text-decoration: underline; }
+.tour-author-role {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: var(--accent-glow); border-radius: 999px; padding: 1px 8px;
+}
+.tour-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-md); border-top: 1px solid var(--border-subtle);
+}
+.tour-dots { display: flex; gap: 6px; }
+.tour-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border-default); transition: background 0.2s, transform 0.2s;
+}
+.tour-dot.active { background: var(--accent-primary); transform: scale(1.25); }
+.tour-nav { display: flex; gap: var(--space-sm); }
+
+/* Spotlight ring on the element a tour step refers to */
+.tour-highlight {
+  position: relative; z-index: 1201;
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+  animation: tour-pulse 1.4s ease-in-out infinite;
+}
+@keyframes tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--accent-glow); }
+  50%      { box-shadow: 0 0 0 8px rgba(108, 99, 255, 0.12); }
 }
 
-/* ---- RLS Deep — consolidated remediation plan (v2) ---- */
-.rls-summary { display: flex; flex-direction: column; gap: 6px; padding: var(--space-sm, 8px) 0; }
-.rls-summary-line { font-size: 0.82rem; color: var(--text-secondary); }
-.rls-summary-line strong { color: var(--text-primary); }
-.rls-summary-chips { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.rls-plan-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); margin: var(--space-md, 12px) 0 var(--space-sm); }
-.rls-plan-head h4 { font-size: 0.86rem; font-weight: 700; }
-
-.rls-plan-step { padding: var(--space-sm, 10px) var(--space-md, 12px); margin-bottom: var(--space-sm); border-left: 3px solid var(--border-subtle); }
-.rls-plan-step.sev-high   { border-left-color: var(--color-high); }
-.rls-plan-step.sev-medium { border-left-color: var(--color-medium); }
-.rls-plan-step.sev-low    { border-left-color: var(--color-low); }
-.rls-plan-step-head { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
-.rls-plan-step-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); flex: 1; min-width: 0; }
-.rls-plan-step-count { font-size: 0.72rem; white-space: nowrap; }
-
-.rls-tables { margin: 6px 0; font-size: 0.74rem; }
-.rls-tables > summary { cursor: pointer; color: var(--text-muted); }
-.rls-tables-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-.rls-tables-list code, .rls-raw-list code, .finding-title code {
-  font-family: var(--font-mono); font-size: 0.7rem; background: var(--bg-secondary, #1a1f29);
-  color: var(--text-secondary); padding: 1px 5px; border-radius: 3px;
+/* About → author credit block */
+.about-author {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: var(--space-sm) 0;
+  font-size: 0.78rem; color: var(--text-secondary);
 }
-
-.rls-fix-block, .rls-prompt-block { margin-top: var(--space-sm); }
-.rls-fix-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
-.rls-fix-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
-.rls-prompt {
-  margin-top: 4px; font-size: 0.78rem; line-height: 1.45; color: var(--text-primary);
-  background: var(--bg-secondary, #11151c); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm, 4px); padding: 8px 10px; word-break: break-word;
+.about-author-by { color: var(--text-muted); }
+.about-author-name { color: var(--accent-primary); font-weight: 700; text-decoration: none; }
+.about-author-name:hover { text-decoration: underline; }
+.about-author-role {
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: var(--accent-glow); border-radius: 999px; padding: 1px 8px;
 }
-
-.rls-raw, .rls-managed { margin-top: var(--space-md, 12px); font-size: 0.78rem; }
-.rls-raw > summary, .rls-managed > summary { cursor: pointer; color: var(--text-secondary); font-weight: 600; padding: 4px 0; }
-.rls-managed > summary { color: var(--text-muted); }
-.rls-raw-list { margin-top: var(--space-sm); display: flex; flex-direction: column; gap: 2px; }
-.rls-raw-list .finding-row { align-items: flex-start; }
-
-/* ---- Onboarding coach + next-step banner ---- */
-.onboard-card {
-  background: var(--bg-card); border: 1px solid var(--border-active);
-  border-radius: var(--radius-md); padding: var(--space-md);
-  margin-bottom: var(--space-md); box-shadow: var(--glass-shadow);
-}
-.onboard-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-sm); }
-.onboard-steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 0.8rem; color: var(--text-primary); }
-.onboard-steps li { line-height: 1.4; }
-.onboard-steps strong { color: var(--accent-primary-hover); }
-
-.next-step {
-  display: flex; align-items: center; gap: var(--space-sm);
+isplay: flex; align-items: center; gap: var(--space-sm);
   border-radius: var(--radius-md); padding: 10px var(--space-md);
   margin-bottom: var(--space-md); font-size: 0.82rem; line-height: 1.4;
   border: 1px solid var(--border-default); background: var(--bg-card);

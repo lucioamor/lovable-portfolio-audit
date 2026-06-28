@@ -1,8 +1,9 @@
 # 🛡️ NXLV Audit — The Lovable Production-Readiness Standard
 
 [![npm version](https://img.shields.io/npm/v/@nxlv/audit.svg?style=flat-square)](https://www.npmjs.com/package/@nxlv/audit)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-2ed573.svg?style=flat-square)](../../LICENSE)
 [![Security: Read-Only](https://img.shields.io/badge/Security-Read--Only-green.svg?style=flat-square)](#security-invariants)
+[![By Lucio Amorim — Lovable Ambassador](https://img.shields.io/badge/By-Lucio%20Amorim%20(Lovable%20Ambassador)-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim)
 
 > **The independent security audit layer for Lovable apps.**
 > Lovable's built-in scanner checks your code. NXLV Audit checks if it actually *works in production*.
@@ -75,22 +76,22 @@ Each finding is tagged with a required **Lovable level** (`L0`/`L1`/`L2`) derive
 
 ```bash
 # Default: colorized console output
-npx @nxlv/shield scan --token <token>
+npx @nxlv/audit scan --token <token>
 
 # JSON (includes AI fix prompts, remediation SQL, full evidence)
-npx @nxlv/shield scan --token <token> --format json --output report.json
+npx @nxlv/audit scan --token <token> --format json --output report.json
 
 # SARIF (upload to GitHub Security tab)
-npx @nxlv/shield scan --token <token> --format sarif --output results.sarif
+npx @nxlv/audit scan --token <token> --format sarif --output results.sarif
 
 # Markdown (shareable report)
-npx @nxlv/shield scan --token <token> --format markdown --output report.md
+npx @nxlv/audit scan --token <token> --format markdown --output report.md
 
 # HTML (single self-contained file — inline CSS/JS, no network)
-npx @nxlv/shield scan --token <token> --format html --output report.html
+npx @nxlv/audit scan --token <token> --format html --output report.html
 
 # All formats at once
-npx @nxlv/shield scan --token <token> --format all --output audit
+npx @nxlv/audit scan --token <token> --format all --output audit
 ```
 
 The HTML report is a single file with no external or CDN dependencies: it renders
@@ -112,7 +113,7 @@ values are HTML-escaped.
            Evidence: eyJh••••••••••••••••••••••••••••••Kz (src/lib/supabase.ts:3)
 
 ═══════════════════════════════════════════════
-  🛡️  NXLV Shield — Scan Complete
+  🛡️  NXLV Audit — Scan Complete
 ═══════════════════════════════════════════════
 
   Projects scanned:    47/47
@@ -141,7 +142,7 @@ Audit your Lovable projects (see flags above). Additional flags:
 # The payload carries only counts and new/resolved finding identifiers
 # (ruleId, title, severity, project) — no tokens, no raw bodies, no evidence.
 # A non-2xx response or network error warns and does not fail the scan.
-npx @nxlv/shield scan --token <token> --baseline --webhook https://example.com/hook
+npx @nxlv/audit scan --token <token> --baseline --webhook https://example.com/hook
 ```
 
 ### `report <results.json>`
@@ -150,8 +151,8 @@ without re-scanning. The saved `scanTimestamp` is reused so output is stable.
 
 ```bash
 # Regenerate as HTML (default), Markdown, JSON, or SARIF
-npx @nxlv/shield report report.json --format html --output report.html
-npx @nxlv/shield report report.json --format markdown   # → stdout
+npx @nxlv/audit report report.json --format html --output report.html
+npx @nxlv/audit report report.json --format markdown   # → stdout
 ```
 
 ### `fix-prompt <results.json>`
@@ -160,8 +161,8 @@ project and finding, so they can be pasted into the Lovable AI chat. Findings
 without a prompt are skipped.
 
 ```bash
-npx @nxlv/shield fix-prompt report.json                  # → stdout
-npx @nxlv/shield fix-prompt report.json --output prompts.md
+npx @nxlv/audit fix-prompt report.json                  # → stdout
+npx @nxlv/audit fix-prompt report.json --output prompts.md
 ```
 
 ### `verify-evidence <pack.json>`
@@ -172,8 +173,8 @@ side-panel export (`_signature` + `pack`) and the portable recipe
 (`hmac_sha256` + `payload`) shapes are accepted.
 
 ```bash
-npx @nxlv/shield verify-evidence pack.json --passphrase <device-key-or-passphrase>
-NXLV_EVIDENCE_PASSPHRASE=<key> npx @nxlv/shield verify-evidence pack.json
+npx @nxlv/audit verify-evidence pack.json --passphrase <device-key-or-passphrase>
+NXLV_EVIDENCE_PASSPHRASE=<key> npx @nxlv/audit verify-evidence pack.json
 ```
 
 ### `verify` / `ci`
@@ -216,15 +217,15 @@ This tool is designed with **defense-in-depth privacy principles**:
 ### GitHub Actions
 
 ```yaml
-name: NXLV Shield Security Audit
+name: NXLV Audit Security Audit
 on: [push, pull_request]
 jobs:
   security-audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run NXLV Shield
-        run: npx @nxlv/shield ci --output nxlv-shield.sarif
+      - name: Run NXLV Audit
+        run: npx @nxlv/audit ci --output nxlv-audit.sarif
         env:
           LOVABLE_TOKEN: ${{ secrets.LOVABLE_TOKEN }}
       - name: Upload SARIF to GitHub Security
@@ -242,7 +243,7 @@ dispatch, and is guarded on a `LOVABLE_TOKEN` repository secret being present.
 
 ## 🆚 vs. Lovable Built-in Scanner
 
-| Lovable Built-in | NXLV Shield |
+| Lovable Built-in | NXLV Audit |
 |---|---|
 | Runs during development | Runs against deployed production |
 | Checks code before publish | Probes endpoints as an attacker would |
@@ -250,17 +251,17 @@ dispatch, and is guarded on a `LOVABLE_TOKEN` repository secret being present.
 | Integrated in Lovable platform | Independent — works on any Lovable app |
 | Trusted (internal) | **Independent audit** — the external auditor |
 
-> *"Lovable tells you your code looks secure. NXLV Shield tests if it actually is."*
+> *"Lovable tells you your code looks secure. NXLV Audit tests if it actually is."*
 
 ---
 
 ## 📄 License
 
-MIT — use freely, contribute patterns, cite in your security reports.
+Licensed under **[Creative Commons Attribution 4.0 International (CC BY 4.0)](../../LICENSE)** — use it freely, including commercially, and contribute patterns. If you reproduce it or ship any part of it in your own product, credit **[Lucio Amorim](https://linkedin.com/in/lucioamorim)** as a contributor and link to the license.
 
 ---
 
-**Built by the Lovable community for the Lovable community.**  
+**Built by [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — for the Lovable community.**  
 Positioned as the standard for "Lovable Production-Readiness."
 
 *Found a vulnerability pattern we're missing? Open an issue or PR.*

@@ -47,7 +47,7 @@ select jsonb_build_object(
 export function renderChecklist(): string {
   return [
     '═══════════════════════════════════════════════════════════',
-    '  🛡️  NXLV Shield — Deep RLS Checklist (copy-paste audit)',
+    '  🛡️  NXLV Audit — Deep RLS Checklist (copy-paste audit)',
     '═══════════════════════════════════════════════════════════',
     '',
     'This audits RLS depth (DB-003/004/005/008/009) WITHOUT touching your',

@@ -105,7 +105,7 @@ const BANNER = `
 ${chalk.cyan('█▄░█ ▀▄▀ █░░ █░█   ░░ █▀ █░█ █ █▀▀ █░░ █▀▄')}
 ${chalk.cyan('█░▀█ █░█ █▄▄ ▀▄▀   ░░ ▄█ █▀█ █ ██▄ █▄▄ █▄▀')}
 ${chalk.gray(`The Lovable Production-Readiness Standard — v${VERSION}`)}
-${chalk.gray('https://github.com/nxlv/lovable-portfolio-audit')}
+${chalk.gray('https://github.com/lucioamor/lovable-portfolio-audit')}
 `;
 
 async function main() {
@@ -531,7 +531,7 @@ async function main() {
       const sarif = toSARIF(results);
       writeFileSync(opts.output, sarif, 'utf-8');
 
-      console.log(`NXLV Shield CI: ${summary.scannedProjects} projects, ${summary.criticalCount + summary.catastrophicCount} critical findings`);
+      console.log(`NXLV Audit CI: ${summary.scannedProjects} projects, ${summary.criticalCount + summary.catastrophicCount} critical findings`);
 
       if (summary.catastrophicCount > 0 || summary.criticalCount > 0) {
         process.exit(1);

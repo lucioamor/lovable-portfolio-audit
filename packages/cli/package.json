@@ -23,11 +23,11 @@
     "audit",
     "vibe-coding"
   ],
-  "author": "NXLV <security@nxlv.ai>",
-  "license": "MIT",
+  "author": "Lucio Amorim (Lovable Ambassador) <https://linkedin.com/in/lucioamorim>",
+  "license": "CC-BY-4.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nxlv/lovable-portfolio-audit"
+    "url": "https://github.com/lucioamor/lovable-portfolio-audit"
   },
   "dependencies": {
     "chalk": "^5.3.0",

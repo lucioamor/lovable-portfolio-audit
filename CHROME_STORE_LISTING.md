@@ -1,5 +1,7 @@
 # Chrome Web Store Listing — NXLV Audit (Lovable Portfolio Audit)
 
+By [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — **Lovable Ambassador**.
+
 Everything needed to submit the extension. A human must create the Chrome Web Store **developer account (one-time US$5 fee)** and perform the upload; this document provides the copy, the permission justifications, the packaging command, and the submission checklist.
 
 ---
@@ -16,6 +18,7 @@ Every entry below is justified by a concrete code path. Permissions and hosts th
 | `storage` | Store the encrypted token vault, scan results/history, settings, and consent records locally on-device. | `chrome.storage.local` used throughout `background.js`, `token-vault.js`, `consent-gate.js`, `pattern-catalog.js`, `scan-history.js` |
 | `sidePanel` | The dashboard UI is a Chrome side panel; the extension sets panel behavior and opens it. | `background.js` `chrome.sidePanel.setPanelBehavior(...)`; `popup.html` `chrome.sidePanel.open(...)`; `side_panel` key in manifest |
 | `alarms` | Schedule two background maintenance tasks: daily refresh of the secret-pattern catalog and weekly pruning of old scan history. | `background.js` `chrome.alarms.create('refresh-patterns'|'prune-history')` + `chrome.alarms.onAlarm` |
+| `tabs` | lovable.dev is a single-page app, so the content script is not re-injected on in-app navigation. The extension reads the **tab URL** on `chrome.tabs.onUpdated` to track which Lovable workspace is active. It reads only the URL of `lovable.dev` tabs and never injects or executes code. | `background.js` `chrome.tabs.onUpdated.addListener(...)` → matches `lovable.dev/workspaces/:id` |
 
 ### Host permissions kept
 
@@ -32,7 +35,7 @@ Every entry below is justified by a concrete code path. Permissions and hosts th
 | `activeTab` permission | No `chrome.tabs`, `chrome.scripting`, or `executeScript` anywhere in the extension. The only `activeTab` references are an unrelated UI state variable (`state.activeTab` in `sidepanel.js`). The extension reaches pages via **declarative** `content_scripts` + host permissions, which do not need `activeTab`. | Removed from `manifest.json`. No code change needed (nothing consumed it). |
 | `https://*.supabase.co/*` host | **No** `fetch`/XHR to any `supabase.co` URL anywhere in the extension. The RLS audit is a copy-paste SQL model (`rls-checklist.js`): the tool generates introspection SQL and the user runs it themselves; the extension never connects to a Supabase database. The only `supabase.co` strings in code are a regex used to *detect* a URL inside fetched file content and a hardcoded demo value. | Removed from `manifest.json`. This was a pure dead grant — no corresponding code path existed to remove. |
 
-> Net result: 4 permissions + 3 host permissions, each tied to a verifiable code path. Nothing unused remains.
+> Net result: 5 permissions + 3 host permissions, each tied to a verifiable code path. Nothing unused remains.
 
 ---
 
@@ -52,6 +55,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 
 - **Category:** Developer Tools
 - **Suggested name:** NXLV Audit — Lovable Portfolio Audit
+- **Developer / author:** Lucio Amorim — Lovable Ambassador ([linkedin.com/in/lucioamorim](https://linkedin.com/in/lucioamorim))
 - **Visibility on first submission:** **Unlisted / private** (see Section 8) — do **not** publish publicly until tested.
 
 ### Short summary (≤132 chars)
@@ -74,6 +78,8 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **Privacy by design.** Your session token never leaves the browser and is stored in an AES-GCM encrypted vault. Raw response bodies are never persisted or sent — only masked samples and a short hash are kept. Every Lovable request is read-only (GET). There is no telemetry and no NXLV server. Safe mode is on by default.
 >
 > Built for Lovable builders who want to verify their own security posture before shipping using NXLV Audit.
+>
+> Created by Lucio Amorim — Lovable Ambassador. https://linkedin.com/in/lucioamorim
 
 ### Português
 
@@ -87,10 +93,12 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **Privacidade por design.** Seu token de sessão nunca sai do navegador e fica num cofre criptografado com AES-GCM. Corpos de resposta brutos nunca são persistidos ou enviados — apenas amostras mascaradas e um hash curto são guardados. Toda requisição ao Lovable é somente-leitura (GET). Não há telemetria nem servidor NXLV. O modo seguro vem ativado por padrão.
 >
 > Feito para builders do Lovable que querem verificar a própria postura de segurança antes de publicar.
+>
+> Criado por Lucio Amorim — Lovable Ambassador. https://linkedin.com/in/lucioamorim
 
 ### Español
 
-> **NXLV Shield audita tus propios proyectos de Lovable.dev en busca de exposición de seguridad — completamente en tu dispositivo.**
+> **NXLV Audit audita tus propios proyectos de Lovable.dev en busca de exposición de seguridad — completamente en tu dispositivo.**
 >
 > Inicia sesión en Lovable, abre el panel lateral y analiza los proyectos que **te pertenecen** en busca de:
 > - **Exposición BOLA / IDOR** — endpoints que podrían servir los archivos o el historial de chat de tu proyecto a otras cuentas.
@@ -100,6 +108,8 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **Privacidad por diseño.** Tu token de sesión nunca sale del navegador y se guarda en una bóveda cifrada con AES-GCM. Los cuerpos de respuesta sin procesar nunca se almacenan ni se envían — solo se conservan muestras enmascaradas y un hash corto. Cada solicitud a Lovable es de solo lectura (GET). No hay telemetría ni servidor NXLV. El modo seguro está activado por defecto.
 >
 > Hecho para builders de Lovable que quieren verificar su propia postura de seguridad antes de publicar.
+>
+> Creado por Lucio Amorim — Lovable Ambassador. https://linkedin.com/in/lucioamorim
 
 ---
 

@@ -37,7 +37,56 @@ const state = {
   filterText: '',
   filterSeverity: '',
   onboarded: false,
+  tourStep: 0,
+  tourActive: false,
 };
+
+// ============================================================
+// Guided onboarding tour — step definitions
+// ============================================================
+
+const TOUR_STEPS = [
+  {
+    emoji: '🛡️', tab: 'scan', target: null, author: true,
+    title: 'Welcome to NXLV Audit',
+    text: 'A read-only, local-first security audit for the Lovable projects you own — BOLA/IDOR exposure, leaked secrets, and Supabase RLS gaps. Nothing ever leaves your browser. Here\'s the 30-second tour.',
+  },
+  {
+    emoji: '🔑', tab: 'scan', target: '#session-badge',
+    title: '1 · Authenticate',
+    text: 'Log in to lovable.dev in this browser, or store a token in the encrypted vault. This badge turns green when the scanner can read your own session. It only ever sees your account.',
+  },
+  {
+    emoji: '⚙️', tab: 'scan', target: '.scan-options',
+    title: '2 · Choose what to scan',
+    text: 'Pick your depth: AI chat history, deep file-content inspection (L2 consent), and optional dual-probe BOLA confirmation with a second token. Hover any control for a tooltip explaining it.',
+  },
+  {
+    emoji: '▶️', tab: 'scan', target: '#scan-btn',
+    title: '3 · Run the scan',
+    text: 'Start Scan audits every project you own, worst issues first. New here? Hit Load Demo right next to it to explore the whole dashboard with realistic sample data — no login needed.',
+  },
+  {
+    emoji: '📊', tab: 'results', target: '.results-toolbar',
+    title: '4 · Read the results',
+    text: 'Each project card shows its risk score, severity, and per-finding evidence with a fix. Filter by name or severity, then export a tamper-proof, HMAC-signed evidence pack with 📦.',
+  },
+  {
+    emoji: '🗄️', tab: 'rls', target: '#rls-show-sql',
+    title: '5 · Deep RLS audit',
+    text: 'For Supabase Row-Level-Security depth, the tool never touches your database. It hands you read-only SQL to run yourself; paste the result back and it classifies the gaps with copy-paste fixes.',
+  },
+  {
+    emoji: '🔐', tab: 'settings', target: '#tab-settings .settings-section:first-child',
+    title: '6 · Vault, privacy & diagnostics',
+    text: 'Tokens live in an AES-256-GCM vault, on-device only. Settings also holds the passive sensor (off by default), detection patterns, and a redacted diagnostics export for repair sessions.',
+  },
+  {
+    emoji: '🚀', tab: 'scan', target: null, author: true,
+    title: 'You\'re set',
+    text: 'That\'s the whole flow. Replay this tour anytime from Settings → About. Built for Lovable builders who ship with confidence — go find what\'s exposed before anyone else does.',
+  },
+];
 
 // ============================================================
 // DOM shortcuts
@@ -130,9 +179,116 @@ function renderAll() {
 // Onboarding coach + "what to do now" banner
 // ============================================================
 
+// True while a blocking modal (legal gate, vault setup, vault unlock) is on
+// screen — the tour overlay must not cover those.
+function modalsBlocking() {
+  const ids = ['legal-gate', 'vault-setup-modal', 'vault-unlock-modal'];
+  return ids.some(id => { const el = $(id); return el && !el.classList.contains('hidden'); });
+}
+
 function renderOnboarding() {
-  // Only after the legal gate is cleared, and only until dismissed once.
-  setVisible('onboard-card', state.legalAccepted && !state.onboarded);
+  // First run, once the user is past the legal/vault modals: auto-launch the
+  // guided tour. Otherwise it stays replayable from Settings → About.
+  if (state.legalAccepted && !state.onboarded && !state.tourActive && !modalsBlocking()) {
+    startTour();
+    return;
+  }
+  // The lightweight recap card only shows if the tour isn't running and the
+  // user hasn't completed onboarding yet.
+  setVisible('onboard-card', state.legalAccepted && !state.onboarded && !state.tourActive && !modalsBlocking());
+}
+
+// ============================================================
+// Guided onboarding tour
+// ============================================================
+
+let _tourHighlightEl = null;
+
+function startTour() {
+  state.tourActive = true;
+  state.tourStep = 0;
+  setVisible('onboard-card', false);
+  buildTourDots();
+  renderTourStep();
+  setVisible('tour-overlay', true);
+}
+
+function buildTourDots() {
+  const dots = $('tour-dots');
+  if (!dots) return;
+  dots.innerHTML = TOUR_STEPS.map((_, i) => `<span class="tour-dot" data-i="${i}"></span>`).join('');
+}
+
+function clearTourHighlight() {
+  if (_tourHighlightEl) {
+    _tourHighlightEl.classList.remove('tour-highlight');
+    _tourHighlightEl = null;
+  }
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[state.tourStep];
+  if (!step) return endTour();
+
+  // Switch to the relevant tab so the highlighted area is visible.
+  if (step.tab && state.activeTab !== step.tab) {
+    state.activeTab = step.tab;
+    renderTab(step.tab);
+  }
+
+  $('tour-emoji').textContent = step.emoji || '🛡️';
+  $('tour-title').textContent = step.title;
+  $('tour-text').textContent = step.text;
+  $('tour-step-badge').textContent = `Step ${state.tourStep + 1} / ${TOUR_STEPS.length}`;
+  setVisible('tour-author', !!step.author);
+
+  // Nav buttons
+  $('tour-back').style.visibility = state.tourStep === 0 ? 'hidden' : 'visible';
+  $('tour-next').textContent = state.tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →';
+
+  // Step dots
+  document.querySelectorAll('.tour-dot').forEach((d, i) => d.classList.toggle('active', i === state.tourStep));
+
+  // Spotlight the target element
+  clearTourHighlight();
+  if (step.target) {
+    const el = document.querySelector(step.target);
+    if (el) {
+      el.classList.add('tour-highlight');
+      _tourHighlightEl = el;
+      try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+    }
+  }
+}
+
+function tourNext() {
+  if (state.tourStep >= TOUR_STEPS.length - 1) return endTour();
+  state.tourStep++;
+  renderTourStep();
+}
+
+function tourBack() {
+  if (state.tourStep === 0) return;
+  state.tourStep--;
+  renderTourStep();
+}
+
+async function endTour() {
+  // Both "Finish" and "Skip" mark onboarding as done so the tour never
+  // auto-relaunches. It stays replayable from Settings → About.
+  clearTourHighlight();
+  state.tourActive = false;
+  setVisible('tour-overlay', false);
+  state.onboarded = true;
+  await storageSet({ lpa_onboarded: true });
+  setVisible('onboard-card', false);
+}
+
+// Replay from Settings: re-open the tour without touching the onboarded flag.
+function replayTour() {
+  state.activeTab = 'scan';
+  renderTab('scan');
+  startTour();
 }
 
 function computeNextStep() {
@@ -569,6 +725,7 @@ async function handleVaultSetup() {
     renderModals();
     renderBadges();
     renderTab('settings');
+    renderOnboarding();
   } catch (e) {
     showErr(errEl, `Failed: ${e.message}`);
   } finally {
@@ -589,6 +746,7 @@ async function handleVaultUnlock() {
       renderModals();
       renderBadges();
       renderTab('settings');
+      renderOnboarding();
     } else {
       showErr(errEl, 'Wrong passphrase.');
     }
@@ -644,7 +802,7 @@ function attachListeners() {
 
   // Vault setup modal
   $('vault-setup-submit')?.addEventListener('click', handleVaultSetup);
-  $('vault-setup-cancel')?.addEventListener('click', () => setVisible('vault-setup-modal', false));
+  $('vault-setup-cancel')?.addEventListener('click', () => { setVisible('vault-setup-modal', false); renderOnboarding(); });
 
   // Vault unlock modal
   $('vault-unlock-submit')?.addEventListener('click', handleVaultUnlock);
@@ -775,6 +933,12 @@ function attachListeners() {
     await storageSet({ lpa_onboarded: true });
     renderOnboarding();
   });
+
+  // Guided tour controls
+  $('tour-next')?.addEventListener('click', tourNext);
+  $('tour-back')?.addEventListener('click', tourBack);
+  $('tour-skip')?.addEventListener('click', endTour);
+  $('replay-onboarding-btn')?.addEventListener('click', replayTour);
 
   // Settings — diagnostics
   $('diag-build-btn')?.addEventListener('click', generateDiagnostics);
