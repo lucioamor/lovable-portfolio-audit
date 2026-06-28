@@ -231,7 +231,7 @@ jobs:
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: nxlv-shield.sarif
+          sarif_file: nxlv-audit.sarif
 ```
 
 This repository also ships a ready-to-use workflow at
