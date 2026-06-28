@@ -64,7 +64,7 @@ Runs in your browser, reads your own `lovable.dev` session — no manual token h
 
 ### 🖥️ CLI (`@nxlv-ai/lovable-audit`)
 
-A standalone Node CLI (Node ≥ 18) for terminal and CI use. It needs your Lovable Bearer token, which it reads from `--token` or the `LOVABLE_TOKEN` environment variable.
+A standalone Node CLI (Node ≥ 20) for terminal and CI use. It needs your Lovable Bearer token, which it reads from `--token` or the `LOVABLE_TOKEN` environment variable.
 
 ```bash
 # Scan your account (interactive / local)

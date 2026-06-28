@@ -60,7 +60,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 
 ### Short summary (≤132 chars)
 
-> Self-audit your Lovable.dev projects for BOLA/IDOR, exposed secrets, and Supabase RLS gaps. Local-first, read-only, private. (NXLV Lovable Portfolio Audit)
+> Self-audit your Lovable.dev projects for access-control issues, exposed secrets, and Supabase RLS gaps. Local-first, read-only, private. (NXLV Lovable Portfolio Audit)
 
 ---
 
@@ -71,7 +71,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **NXLV Lovable Portfolio Audit audits your own Lovable.dev projects for security exposure — entirely on your device.**
 >
 > Log into Lovable, open the side panel, and scan the projects **you own** for:
-> - **BOLA / IDOR exposure** — endpoints that may serve your project files or chat history to other accounts.
+> - **Access-control exposure** — endpoints that may serve your project files or chat history to other accounts.
 > - **Exposed secrets & API keys** — Supabase service-role keys, OpenAI/Anthropic keys, Stripe live keys, database URLs, and more, with masked evidence.
 > - **Supabase RLS gaps** — a copy-paste, read-only SQL checklist you run yourself; paste the result back for instant classification (disabled RLS, tautological policies, over-broad grants).
 >
@@ -86,7 +86,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **O NXLV Lovable Portfolio Audit audita os seus próprios projetos do Lovable.dev em busca de exposição de segurança — inteiramente no seu dispositivo.**
 >
 > Faça login no Lovable, abra o painel lateral e analise os projetos que **você possui** em busca de:
-> - **Exposição BOLA / IDOR** — endpoints que podem servir os arquivos ou o histórico de chat do seu projeto a outras contas.
+> - **Exposição de controle de acesso** — endpoints que podem servir os arquivos ou o histórico de chat do seu projeto a outras contas.
 > - **Segredos e chaves de API expostos** — chaves service-role do Supabase, chaves OpenAI/Anthropic, chaves Stripe live, URLs de banco de dados e mais, com evidência mascarada.
 > - **Falhas de RLS no Supabase** — um checklist de SQL somente-leitura para copiar e colar, que você executa; cole o resultado de volta para classificação instantânea (RLS desabilitado, políticas tautológicas, grants amplos demais).
 >
@@ -101,7 +101,7 @@ https://github.com/lucioamor/lovable-portfolio-audit/blob/master/PRIVACY.md
 > **NXLV Lovable Portfolio Audit audita tus propios proyectos de Lovable.dev en busca de exposición de seguridad — completamente en tu dispositivo.**
 >
 > Inicia sesión en Lovable, abre el panel lateral y analiza los proyectos que **te pertenecen** en busca de:
-> - **Exposición BOLA / IDOR** — endpoints que podrían servir los archivos o el historial de chat de tu proyecto a otras cuentas.
+> - **Exposición de control de acceso** — endpoints que podrían servir los archivos o el historial de chat de tu proyecto a otras cuentas.
 > - **Secretos y claves de API expuestos** — claves service-role de Supabase, claves de OpenAI/Anthropic, claves live de Stripe, URLs de base de datos y más, con evidencia enmascarada.
 > - **Brechas de RLS en Supabase** — una lista de verificación SQL de solo lectura para copiar y pegar, que tú mismo ejecutas; pega el resultado para una clasificación instantánea (RLS deshabilitado, políticas tautológicas, permisos demasiado amplios).
 >

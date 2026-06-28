@@ -4,7 +4,7 @@
 **Author:** [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador
 **Applies to:** the "NXLV Lovable Portfolio Audit — Lovable Portfolio Audit" Chrome extension and the `@nxlv-ai/lovable-audit` CLI in this repository.
 
-NXLV Lovable Portfolio Audit is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (BOLA/IDOR, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
+NXLV Lovable Portfolio Audit is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (access-control issues, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
 
 The short version: **your data stays on your device.** There is no NXLV server that receives your tokens, your project contents, or any analytics.
 

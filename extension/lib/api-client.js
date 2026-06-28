@@ -7,7 +7,7 @@ import { log } from './logger.js';
 import { normalizeLovablePath, isKnownEndpoint } from './passive-endpoints.js';
 
 const API_BASE = 'https://api.lovable.dev';
-const USER_AGENT = 'NXLV-Audit/1.0 (+https://github.com/lucioamorim/lovable-portfolio-audit)';
+const USER_AGENT = 'NXLV-Audit/1.0 (+https://github.com/lucioamor/lovable-portfolio-audit)';
 
 let sessionToken = null;
 let auditToken = null;

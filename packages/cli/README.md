@@ -263,7 +263,6 @@ Licensed under **[Apache 2.0](../../LICENSE)** — use it freely, including comm
 
 ---
 
-**Built by [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — for the Lovable community.**  
-Positioned as the standard for "Lovable Production-Readiness."
+**Built by [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — for the Lovable community.**
 
 *Found a vulnerability pattern we're missing? Open an issue or PR.*

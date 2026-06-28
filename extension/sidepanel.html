@@ -20,7 +20,7 @@
       <h3>What this scanner does:</h3>
       <ul>
         <li>Lists projects from <em>your authenticated</em> Lovable account</li>
-        <li>Probes 4 Lovable API endpoints to measure BOLA/IDOR exposure</li>
+        <li>Probes 4 Lovable API endpoints to measure access-control exposure</li>
         <li>Downloads files only if you grant explicit deep-inspect permission</li>
         <li>Analyzes patterns locally — <strong>nothing leaves your browser</strong></li>
         <li>Stores only hashes and masked values — never raw secrets</li>
@@ -148,7 +148,7 @@
       </div>
       <ol class="onboard-steps">
         <li><strong>Log in to lovable.dev</strong> in this browser (or save a token in Settings → Vault). The scan uses <em>your own</em> session — read-only, nothing leaves your browser.</li>
-        <li><strong>Run a scan.</strong> It lists your projects and probes each for BOLA/IDOR, exposed secrets, and Supabase RLS gaps.</li>
+        <li><strong>Run a scan.</strong> It lists your projects and probes each for access-control issues, exposed secrets, and Supabase RLS gaps.</li>
         <li><strong>Read Results.</strong> Worst issues first, each with evidence and a fix. Export an evidence pack anytime.</li>
       </ol>
       <p class="hint">Stuck? Settings → 🩺 Diagnostics builds a report you can hand off for repair.</p>
