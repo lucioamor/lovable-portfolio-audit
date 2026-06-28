@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Supabase Security Engine
+// @nxlv-ai/lovable-audit — Supabase Security Engine
 // ============================================================
 // Checks: DB-001..015, APP-009 (security headers), LOV-002
 // DAST uses anon key only — read-only, no data modification.

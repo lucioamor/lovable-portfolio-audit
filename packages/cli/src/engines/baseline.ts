@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Baseline + Delta (H4 parity for the CLI)
+// @nxlv-ai/lovable-audit — Baseline + Delta (H4 parity for the CLI)
 // ============================================================
 // Persists findings to .nxlv-baseline.json so re-runs can report drift:
 //   new       — fingerprint not in the baseline

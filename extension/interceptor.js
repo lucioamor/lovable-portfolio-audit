@@ -2,7 +2,7 @@
   'use strict';
 
   // ============================================================
-  // NXLV Audit — Passive Sensor (page-context interceptor)
+  // NXLV Lovable Portfolio Audit — Passive Sensor (page-context interceptor)
   // ============================================================
   // Wraps fetch/XHR. For Lovable API traffic the browser ALREADY received,
   // it extracts security signals IN THIS PAGE CONTEXT, masks + hashes them,

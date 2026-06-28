@@ -2,9 +2,9 @@
   "name": "lovable-portfolio-audit",
   "private": true,
   "version": "2.0.0",
-  "description": "NXLV Audit — self-audit security toolkit for Lovable.dev projects. By Lucio Amorim, Lovable Ambassador.",
+  "description": "NXLV Lovable Portfolio Audit — self-audit security toolkit for Lovable.dev projects. By Lucio Amorim, Lovable Ambassador.",
   "author": "Lucio Amorim (Lovable Ambassador) <https://linkedin.com/in/lucioamorim>",
-  "license": "CC-BY-4.0",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/lucioamor/lovable-portfolio-audit",
   "type": "module",
   "scripts": {

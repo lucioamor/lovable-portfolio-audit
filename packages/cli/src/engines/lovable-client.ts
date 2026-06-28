@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Lovable API Client (CLI version, Node.js)
+// @nxlv-ai/lovable-audit — Lovable API Client (CLI version, Node.js)
 // ============================================================
 // Invariants:
 //   - GET only. No POST/PUT/DELETE.

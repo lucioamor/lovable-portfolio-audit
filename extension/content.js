@@ -1,5 +1,5 @@
 // ============================================================
-// NXLV Audit — Content Script (passive sensor bridge + collectors)
+// NXLV Lovable Portfolio Audit — Content Script (passive sensor bridge + collectors)
 // ============================================================
 // Runs in the isolated content-script world. Responsibilities:
 //   • inject the page-context interceptor (C1)

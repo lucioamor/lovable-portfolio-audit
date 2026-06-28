@@ -1,10 +1,10 @@
-# Privacy Policy — NXLV Audit (Lovable Portfolio Audit)
+# Privacy Policy — NXLV Lovable Portfolio Audit (Lovable Portfolio Audit)
 
 **Last updated:** 2026-06-28
 **Author:** [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador
-**Applies to:** the "NXLV Audit — Lovable Portfolio Audit" Chrome extension and the `@nxlv/audit` CLI in this repository.
+**Applies to:** the "NXLV Lovable Portfolio Audit — Lovable Portfolio Audit" Chrome extension and the `@nxlv-ai/lovable-audit` CLI in this repository.
 
-NXLV Audit is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (BOLA/IDOR, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
+NXLV Lovable Portfolio Audit is a **self-audit security tool**. You run it against **your own** Lovable.dev account to find security exposure (BOLA/IDOR, exposed secrets, Supabase RLS gaps) in projects you own. This policy describes exactly what the tool does and does not do with your data.
 
 The short version: **your data stays on your device.** There is no NXLV server that receives your tokens, your project contents, or any analytics.
 
@@ -86,4 +86,4 @@ This is an open-source project by [Lucio Amorim](https://linkedin.com/in/lucioam
 
 ---
 
-*This policy describes the current behavior of the published tool. It contains no statements about planned or future functionality. Licensed under CC BY 4.0 — see `LICENSE`.*
+*This policy describes the current behavior of the published tool. It contains no statements about planned or future functionality. Licensed under Apache 2.0 — see `LICENSE`.*

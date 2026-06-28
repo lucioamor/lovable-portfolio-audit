@@ -1,5 +1,5 @@
 # ============================================================
-# NXLV Audit — Lovable security audit (SARIF → GitHub Security tab)
+# NXLV Lovable Portfolio Audit — Lovable security audit (SARIF → GitHub Security tab)
 # ============================================================
 # This workflow builds the CLI from packages/cli, runs the `ci` subcommand
 # (SARIF output + exit code 1 on critical/catastrophic findings), and uploads
@@ -18,7 +18,7 @@
 # additionally guarded on the secret being present.
 # ============================================================
 
-name: NXLV Audit
+name: NXLV Lovable Portfolio Audit
 
 on:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
         run: npm run build
         working-directory: packages/cli
 
-      - name: Run NXLV Audit (CI scan → SARIF)
+      - name: Run NXLV Lovable Portfolio Audit (CI scan → SARIF)
         if: steps.guard.outputs.run == 'true'
         # `ci` writes SARIF and exits 1 on critical/catastrophic findings. We
         # keep going so the SARIF still uploads; the recorded exit code is

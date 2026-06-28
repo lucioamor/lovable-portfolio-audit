@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Diff-alert webhook (P11, self-contained, no backend)
+// @nxlv-ai/lovable-audit — Diff-alert webhook (P11, self-contained, no backend)
 // ============================================================
 // After a --baseline scan computes a DeltaSummary, POST a compact JSON
 // summary of what changed to a user-supplied URL. The payload carries only

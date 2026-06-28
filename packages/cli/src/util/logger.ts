@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Structured Logger (H2 parity with extension)
+// @nxlv-ai/lovable-audit — Structured Logger (H2 parity with extension)
 // ============================================================
 // Drop-in replacement for raw console.* that strips secrets before
 // anything reaches stdout/stderr — even under --verbose.

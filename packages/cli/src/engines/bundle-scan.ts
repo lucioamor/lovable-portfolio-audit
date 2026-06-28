@@ -1,5 +1,5 @@
 // ============================================================
-// @nxlv/audit — Bundle / Runtime Scanner (P8/P9 · WS-4)
+// @nxlv-ai/lovable-audit — Bundle / Runtime Scanner (P8/P9 · WS-4)
 // ============================================================
 // Read-only GETs of a deployed Lovable app to detect, in the shipped bundle:
 //   • inline source maps (//# sourceMappingURL=data:...) — source exposed even
