@@ -1,4 +1,4 @@
-# NXLV Lovable Portfolio Audit — Lovable Portfolio Audit
+# NEXT LEVEL Lovable Portfolio Audit
 
 > The self-audit security toolkit for Lovable builders — by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim), **Lovable Ambassador**.
 
