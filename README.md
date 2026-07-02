@@ -39,6 +39,7 @@ The exact pattern set differs slightly between the two channels because they evo
 |---|---|
 | 🎯 **Risk Scoring (0–100)** | Weighted formula combining BOLA exposure, secret/PII counts, RLS status, source-map exposure, and project recency — auto-classifies as **Catastrophic** / **Critical** / **High** / **Medium** / **Low** / **Clean** |
 | 🧾 **Reproducible Rationale** | Every score ships with a `rationale` breakdown (which signals contributed how many points) so the number is auditable, not a black box |
+| **Remedy Guidance** | Findings are enriched with structured fix guidance in English, Portuguese, and Spanish. CLI JSON/SARIF include remedy metadata; Markdown/HTML and the extension panel render the steps inline |
 | 🖥️ **Extension Dashboard** | Dark side-panel UI with risk rings, severity badges, scan history, and per-finding remediation guidance |
 | 🔁 **Baseline & Drift** | Both channels persist a fingerprinted baseline (CLI: `.nxlv-baseline.json`) and report `new` / `unchanged` / `resolved` findings between runs |
 | 📦 **Demo Mode** | The extension can explore the full interface with realistic sample data — no token needed |
@@ -47,7 +48,7 @@ The exact pattern set differs slightly between the two channels because they evo
 
 | Component | What you get |
 |---|---|
-| 📥 **JSON / SARIF / Markdown / HTML** | The CLI emits structured JSON, GitHub-ready SARIF 2.1.0, a Markdown report, or a single self-contained HTML file (`--format json\|sarif\|markdown\|html\|all`) |
+| 📥 **JSON / SARIF / Markdown / HTML** | The CLI emits structured JSON, GitHub-ready SARIF 2.1.0, a Markdown report, or a single self-contained HTML file (`--format json\|sarif\|markdown\|html\|all`). JSON/SARIF carry remedy metadata; Markdown/HTML show the fix steps |
 | 🔐 **Signed Evidence Pack** | The extension exports an HMAC-SHA256 signed report for tamper-proof forensic documentation (see [verification](#verifying-an-evidence-pack) below) |
 | 🌐 **Trilingual UI** | 🇺🇸 English (default) · 🇧🇷 Português · 🇪🇸 Español — switch instantly, no reload |
 
@@ -176,6 +177,7 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 │       ├── data-patterns.js       # 24 secret + 7 PII patterns
 │       ├── masking.js             # Secret masking + line numbers
 │       ├── health-scorer.js       # Scoring algorithms
+│       ├── remedy.js              # Structured remediation catalog
 │       ├── evidence-pack.js       # HMAC-signed evidence export
 │       ├── logger.js              # Logging helper
 │       ├── passive-endpoints.js   # Endpoint normalization (5th-endpoint candidate detection)
@@ -203,7 +205,8 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 │       │   ├── bundle-scan.ts     # Remote bundle / source-map / SRI scan
 │       │   ├── scorer.ts          # Weighted risk score + rationale
 │       │   └── baseline.ts        # Fingerprinted baseline + drift
-│       ├── reporters/index.ts     # console / json / sarif / markdown output
+│       ├── remedy/index.ts        # Structured remediation catalog
+│       ├── reporters/index.ts     # console / json / sarif / markdown / html output
 │       └── util/logger.ts         # Redacting structured logger
 │
 └── package.json                   # Root scripts: test (vitest), build:cli, check:drift
@@ -221,16 +224,11 @@ The project is a Chrome Extension (Manifest V3, plain JS) plus a standalone Type
 
 This tool is for auditing your own account. The Chrome Extension operates only on projects belonging to the authenticated user's session, and the CLI only on the account behind the token you provide. It is not designed for, and cannot be used for, inspecting projects belonging to other accounts.
 
-## About the author
+## Authorship and maintenance
 
-Created and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — **Lovable Ambassador**.
+This project was created by [Lucio Amorim](https://linkedin.com/in/lucioamorim), Lovable Ambassador.
 
-Lucio builds practical infrastructure for people who take Lovable seriously: not just to generate apps, but to review them, secure them, move context between tools, and ship with confidence. NXLV Lovable Portfolio Audit is the security half of that toolkit; the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) — `/wireframe`, `/debate`, `/unbot` — is the other half.
-
-If this tool saved you from shipping an exposed `service_role` key, that's the whole point. Connect on [LinkedIn](https://linkedin.com/in/lucioamorim) and tell me what it caught.
-
-- 🔗 LinkedIn: [linkedin.com/in/lucioamorim](https://linkedin.com/in/lucioamorim)
-- 🧰 Lovable Skills: [github.com/lucioamor/lovable-skills](https://github.com/lucioamor/lovable-skills)
+When reusing, redistributing, or citing this work, keep the attribution credits and include a link to this repository.
 
 ## License
 

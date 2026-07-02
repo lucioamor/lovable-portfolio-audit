@@ -78,7 +78,7 @@ Each finding is tagged with a required **Lovable level** (`L0`/`L1`/`L2`) derive
 # Default: colorized console output
 npx @nxlv-ai/lovable-audit scan --token <token>
 
-# JSON (includes AI fix prompts, remediation SQL, full evidence)
+# JSON (includes AI fix prompts, remediation SQL, remedies, full evidence)
 npx @nxlv-ai/lovable-audit scan --token <token> --format json --output report.json
 
 # SARIF (upload to GitHub Security tab)
@@ -96,8 +96,9 @@ npx @nxlv-ai/lovable-audit scan --token <token> --format all --output audit
 
 The HTML report is a single file with no external or CDN dependencies: it renders
 the severity summary, per-project findings (ruleId, severity badge, title, masked
-evidence, recommendation), and the reproducible score rationale. All interpolated
-values are HTML-escaped.
+evidence, recommendation), structured remedy steps, and the reproducible score
+rationale. All interpolated values are HTML-escaped. JSON and SARIF outputs also
+include remedy metadata for downstream tooling.
 
 ### Example Console Output
 
@@ -180,6 +181,14 @@ NXLV_EVIDENCE_PASSPHRASE=<key> npx @nxlv-ai/lovable-audit verify-evidence pack.j
 ### `verify` / `ci`
 `verify` checks a Lovable token is valid. `ci` runs a scan optimized for
 pipelines (SARIF output, exit code 1 on critical/catastrophic findings).
+
+## Remedy Guidance
+
+Every finding with a known rule ID is enriched with deterministic remediation guidance. Remedies are structured, trilingual (English, Portuguese, Spanish), and score-neutral: they explain how to fix a finding but never change severity or risk score.
+
+- JSON and SARIF include a `remedy` object on each covered finding.
+- Markdown and HTML render the remedy title, effort, summary, and ordered steps.
+- Saved-report regeneration preserves the same remedy rendering without re-scanning.
 
 ## 🤖 AI Fix Prompts
 
@@ -266,3 +275,9 @@ Licensed under **[Apache 2.0](../../LICENSE)** — use it freely, including comm
 **Built by [Lucio Amorim](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — for the Lovable community.**
 
 *Found a vulnerability pattern we're missing? Open an issue or PR.*
+
+## Authorship and maintenance
+
+This project was created by [Lucio Amorim](https://linkedin.com/in/lucioamorim), Lovable Ambassador.
+
+When reusing, redistributing, or citing this work, keep the attribution credits and include a link to this repository.
