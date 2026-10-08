@@ -1,14 +1,14 @@
 # NEXT LEVEL Lovable Portfolio Audit
 
-> The self-audit security toolkit for Lovable builders — by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim), **Lovable Ambassador**.
+> The self-audit security toolkit for Lovable builders — by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim), **Lovable Partner**.
 
 A self-service audit tool for Lovable.dev users to review their own projects for exposed credentials, misconfigured Supabase RLS policies, and sensitive data left in source code or chat history.
 
 Run it against your own account. Get a clear report. Fix what needs fixing.
 
-Built and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — Lovable Ambassador — the same hands behind the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) (`/wireframe`, `/debate`, `/unbot`). This project is part of a wider toolkit for builders who don't just ship Lovable apps — they verify, harden, and stand behind them.
+Built and maintained by [**Lucio Amorim**](https://linkedin.com/in/lucioamorim) — Lovable Partner — the same hands behind the [Lovable Skills catalog](https://github.com/lucioamor/lovable-skills) (`/wireframe`, `/debate`, `/unbot`). This project is part of a wider toolkit for builders who don't just ship Lovable apps — they verify, harden, and stand behind them.
 
-[![Author: Lucio Amorim](https://img.shields.io/badge/By-Lucio%20Amorim-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim) [![Role: Lovable Ambassador](https://img.shields.io/badge/Lovable-Ambassador-8b5cf6?style=flat-square)](https://linkedin.com/in/lucioamorim) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-2ed573?style=flat-square)](./LICENSE)
+[![Author: Lucio Amorim](https://img.shields.io/badge/By-Lucio%20Amorim-6c63ff?style=flat-square)](https://linkedin.com/in/lucioamorim) [![Role: Lovable Partner](https://img.shields.io/badge/Lovable-Partner-8b5cf6?style=flat-square)](https://linkedin.com/in/lucioamorim) [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-2ed573?style=flat-square)](./LICENSE)
 
 ## Why this exists
 
@@ -226,7 +226,7 @@ This tool is for auditing your own account. The Chrome Extension operates only o
 
 ## Authorship and maintenance
 
-This project was created by [Lucio Amorim](https://linkedin.com/in/lucioamorim), Lovable Ambassador.
+This project was created by [Lucio Amorim](https://linkedin.com/in/lucioamorim), Lovable Partner.
 
 When reusing, redistributing, or citing this work, keep the attribution credits and include a link to this repository.
 
@@ -238,4 +238,4 @@ In plain terms: **use it freely** — including commercially — but if you repr
 
 Suggested attribution line:
 
-> Includes work by Lucio Amorim (Lovable Ambassador) — https://linkedin.com/in/lucioamorim — licensed under Apache 2.0.
+> Includes work by Lucio Amorim (Lovable Partner) — https://linkedin.com/in/lucioamorim — licensed under Apache 2.0.
